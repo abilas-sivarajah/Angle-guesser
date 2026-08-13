@@ -12,13 +12,15 @@ Keine Build-Tools, keine Abhängigkeiten: alles steckt in `index.html`.
 
 ## Lokal starten
 
-`index.html` einfach doppelklicken. Oder mit einem lokalen Server (empfohlen, damit `/favicon.svg` gefunden wird):
+Im Projektordner einen kleinen Webserver starten (braucht nur Node):
 
 ```bash
 npx serve .
-# oder
-python -m http.server 3000
 ```
+
+Danach die angezeigte Adresse öffnen, meist http://localhost:3000.
+
+Zur Not tut es auch ein Doppelklick auf `index.html`. Über `file://` findet der Browser aber `/favicon.svg` nicht, und je nach Browser ist `localStorage` gesperrt – dann wird der Spielfortschritt nicht gespeichert. Zum Entwickeln also lieber der Server.
 
 ## Auf Vercel deployen
 
