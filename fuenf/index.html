@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FÜNF – Wort raten</title>
+<meta name="description" content="Errate das Wort mit fünf Buchstaben in sechs Versuchen. Jeden Tag ein neues Wort.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/fuenf/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="FÜNF – Wort raten">
+<meta property="og:description" content="Errate das Wort mit fünf Buchstaben in sechs Versuchen. Jeden Tag ein neues Wort.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --correct:#2e7d46;
+    --present:#b8912a;
+    --absent:#3a3b40;
+    --key:#55575e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 8px 24px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:38px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:42px;height:42px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{
+    background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);
+    display:flex;border-radius:8px;
+  }
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .puzzle-label{margin-top:14px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ---------- board ---------- */
+  .board{display:grid;grid-template-rows:repeat(6,1fr);gap:6px;margin:14px 0 16px;user-select:none}
+  .brow{display:grid;grid-template-columns:repeat(5,var(--tile));gap:6px}
+  .brow.shake{animation:shake .4s}
+  @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+  :root{--tile:min(58px,calc((100vw - 40px) / 5))}
+  .tile{
+    width:var(--tile);height:var(--tile);border:2px solid var(--line);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:calc(var(--tile) * .52);font-weight:700;text-transform:uppercase;
+  }
+  .tile.filled{border-color:#6b6d74;animation:pop .1s ease-out}
+  @keyframes pop{from{transform:scale(1.1)}to{transform:none}}
+  .tile.correct,.tile.present,.tile.absent{border-color:transparent;color:#fff}
+  .tile.correct{background:var(--correct)}
+  .tile.present{background:var(--present)}
+  .tile.absent{background:var(--absent)}
+  .tile.flip{animation:flip .45s ease-in-out both}
+  @keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+  .tile.win{animation:bounce .5s ease both}
+  @keyframes bounce{0%,100%{transform:none}40%{transform:translateY(-14px)}70%{transform:translateY(3px)}}
+
+  /* ---------- keyboard ---------- */
+  .keyboard{width:100%;display:flex;flex-direction:column;gap:7px;user-select:none;touch-action:manipulation}
+  .krow{display:flex;gap:5px;justify-content:center}
+  .key{
+    flex:1 1 0;max-width:44px;height:52px;border:0;border-radius:6px;background:var(--key);color:#fff;
+    font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;padding:0;text-transform:uppercase;
+  }
+  .key.wide{max-width:66px;flex:1.5 1 0;font-size:12px}
+  .key svg{width:22px;height:22px;display:block;margin:auto}
+  .key:active{filter:brightness(1.2)}
+  .key.correct{background:var(--correct)}
+  .key.present{background:var(--present)}
+  .key.absent{background:#26272b;color:#8a8b90}
+
+  /* ---------- result ---------- */
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover{background:#3a3b40}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+  .result{display:none;flex-direction:column;align-items:center;gap:10px;text-align:center;margin-top:4px}
+  .result.show{display:flex}
+  .result .headline{font-size:19px;font-weight:600}
+  .result .sub{font-size:15px;color:var(--muted)}
+  .result .sub b{color:var(--text);text-transform:uppercase;letter-spacing:.06em}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .example{display:flex;gap:5px;margin:8px 0 4px;--tile:36px}
+  .example .tile{font-size:18px}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;margin-bottom:18px;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:26px;font-weight:600}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+  .dist{display:flex;flex-direction:column;gap:5px}
+  .distrow{display:flex;align-items:center;gap:8px;font-size:13px}
+  .distrow .k{width:14px;text-align:right;color:var(--muted)}
+  .distbar{background:var(--panel-2);border-radius:3px;padding:2px 6px;font-size:12px;text-align:right;min-width:24px;color:#fff}
+  .distbar.hit{background:var(--correct)}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <rect x="10" y="17" width="12" height="14" rx="2" fill="#e6503c"/>
+      <rect x="26" y="17" width="12" height="14" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+    </svg>
+    <h1>FÜNF</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+
+  <div class="board" id="board"></div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neues Wort</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Errate das Wort mit <strong>fünf Buchstaben</strong> in <strong>sechs Versuchen</strong>. Jeder Tipp muss ein gültiges Wort sein. Ä, Ö und Ü sind eigene Buchstaben.</p>
+    <p>Nach jedem Tipp färben sich die Felder:</p>
+    <div class="example"><div class="tile correct">B</div><div class="tile">I</div><div class="tile">R</div><div class="tile">N</div><div class="tile">E</div></div>
+    <p><strong>B</strong> steht an der richtigen Stelle.</p>
+    <div class="example"><div class="tile">T</div><div class="tile present">A</div><div class="tile">S</div><div class="tile">S</div><div class="tile">E</div></div>
+    <p><strong>A</strong> kommt im Wort vor, aber an einer anderen Stelle.</p>
+    <div class="example"><div class="tile">K</div><div class="tile">L</div><div class="tile absent">E</div><div class="tile">I</div><div class="tile">D</div></div>
+    <p><strong>E</strong> kommt im Wort nicht (noch einmal) vor.</p>
+    <p><strong>Täglich</strong> gibt es ein Wort für alle – um Mitternacht ein neues. Über <span style="color:var(--accent)">⇄</span> kommst du in den <strong>Übungsmodus</strong> mit beliebig vielen Zufallswörtern (zählt nicht für die Statistik).</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sWin">0</span><span class="l">Gewonnen&nbsp;%</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Aktuelle Serie</span></div>
+      <div><span class="n" id="sMax">0</span><span class="l">Beste Serie</span></div>
+    </div>
+    <h2 style="font-size:15px">Verteilung der Versuche</h2>
+    <div class="dist" id="dist"></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px">Nur tägliche Rätsel zählen in die Statistik.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/fuenf/words.js"></script>
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const SLUG = "fuenf";
+const ROWS = 6, LEN = 5;
+const EPOCH = Date.UTC(2026, 8, 28);      // Rätsel #1
+const K_STATS = "fuenf.stats";
+const K_DAILY = "fuenf.daily";
+const K_HELP = "fuenf.seenHelp";
+const KEYS = ["qwertzuiopü", "asdfghjklöä", "⏎yxcvbnm⌫"];
+const PRAISE = ["Genial!", "Großartig!", "Beeindruckend!", "Stark!", "Gut gemacht!", "Puh, geschafft!"];
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000) + 1);
+}
+
+/* ================= Bewertung ================= */
+function evaluate(guess, answer){
+  const g = [...guess], a = [...answer];
+  const res = Array(LEN).fill("absent");
+  const left = {};
+  for(let i = 0; i < LEN; i++){
+    if(g[i] === a[i]) res[i] = "correct";
+    else left[a[i]] = (left[a[i]] || 0) + 1;
+  }
+  for(let i = 0; i < LEN; i++){
+    if(res[i] !== "correct" && left[g[i]] > 0){ res[i] = "present"; left[g[i]]--; }
+  }
+  return res;
+}
+
+/* ================= Spielzustand ================= */
+let state = null;   // {mode, answer, guesses:[], current, done, won, dateKey, num}
+let busy = false;   // während der Aufdeck-Animation
+
+function newDailyState(){
+  const dateKey = todayKey();
+  const num = puzzleNumber(dateKey);
+  const answer = ANSWERS[(num - 1) % ANSWERS.length];
+  const saved = load(K_DAILY, null);
+  const base = { mode:"daily", dateKey, num, answer, current:"", guesses:[], done:false, won:false };
+  if(saved && saved.dateKey === dateKey) Object.assign(base, { guesses:saved.guesses || [], done:!!saved.done, won:!!saved.won });
+  return base;
+}
+function newPracticeState(){
+  const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+  return { mode:"practice", answer, current:"", guesses:[], done:false, won:false };
+}
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, guesses:state.guesses, done:state.done, won:state.won });
+  if(state.done) reportStatus(state.won ? "won" : "lost", state.won ? `Gelöst · ${state.guesses.length}/${ROWS}` : "Nicht geschafft");
+  else if(state.guesses.length) reportStatus("playing", `${state.guesses.length}/${ROWS} Versuche`);
+}
+
+/* ================= Statistik ================= */
+const emptyStats = { played:0, wins:0, streak:0, max:0, dist:{}, fails:0, lastNum:null };
+function getStats(){ return Object.assign({}, emptyStats, load(K_STATS, {})); }
+function recordResult(won, tries, num){
+  const s = getStats();
+  if(s.lastNum === num) return;
+  const consecutive = s.lastNum === num - 1;
+  s.lastNum = num;
+  s.played++;
+  if(won){
+    s.wins++;
+    s.dist[tries] = (s.dist[tries] || 0) + 1;
+    s.streak = consecutive ? s.streak + 1 : 1;
+    s.max = Math.max(s.max, s.streak);
+  }else{
+    s.fails++;
+    s.streak = 0;
+  }
+  save(K_STATS, s);
+}
+function renderStats(){
+  const s = getStats();
+  el("sPlayed").textContent = s.played;
+  el("sWin").textContent = s.played ? Math.round(s.wins / s.played * 100) : 0;
+  el("sStreak").textContent = s.lastNum !== null && s.lastNum >= puzzleNumber(todayKey()) - 1 ? s.streak : 0;
+  el("sMax").textContent = s.max;
+  const rows = [];
+  for(let i = 1; i <= ROWS; i++) rows.push([String(i), s.dist[i] || 0]);
+  rows.push(["X", s.fails]);
+  const peak = Math.max(1, ...rows.map(r => r[1]));
+  const hit = state.mode === "daily" && state.done && state.won ? String(state.guesses.length) : null;
+  el("dist").innerHTML = rows.map(([k, v]) =>
+    `<div class="distrow"><span class="k">${k}</span>`
+    + `<div class="distbar${k === hit ? " hit" : ""}" style="width:${Math.max(8, Math.round(v / peak * 100))}%">${v}</div></div>`
+  ).join("");
+}
+
+/* ================= UI ================= */
+const el = id => document.getElementById(id);
+
+function toast(msg, ms = 1600){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function buildBoard(){
+  let html = "";
+  for(let r = 0; r < ROWS; r++){
+    html += `<div class="brow" id="row${r}">`;
+    for(let c = 0; c < LEN; c++) html += `<div class="tile" id="t${r}${c}"></div>`;
+    html += "</div>";
+  }
+  el("board").innerHTML = html;
+}
+function buildKeyboard(){
+  const back = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 5H8l-6 7 6 7h14V5zm-2 12H9l-4.3-5L9 7h11v10zm-9.6-2.4L12.8 12l-2.4-2.6 1.4-1.4 2.6 2.6 2.6-2.6 1.4 1.4L16 12l2.4 2.6-1.4 1.4-2.6-2.6-2.6 2.6-1.4-1.4z"/></svg>`;
+  el("keyboard").innerHTML = KEYS.map(row =>
+    `<div class="krow">${[...row].map(k => {
+      if(k === "⏎") return `<button class="key wide" data-key="Enter">Enter</button>`;
+      if(k === "⌫") return `<button class="key wide" data-key="Backspace" aria-label="Löschen">${back}</button>`;
+      return `<button class="key" data-key="${k}" id="k-${k}">${k}</button>`;
+    }).join("")}</div>`
+  ).join("");
+}
+
+function paintRow(r, word, res){
+  [...word.padEnd(LEN)].forEach((ch, c) => {
+    const t = el(`t${r}${c}`);
+    t.textContent = ch.trim();
+    t.className = "tile" + (res ? " " + res[c] : ch.trim() ? " filled" : "");
+  });
+}
+function paintKeys(){
+  const rank = { absent:1, present:2, correct:3 };
+  const best = {};
+  state.guesses.forEach(g => evaluate(g, state.answer).forEach((r, i) => {
+    const ch = [...g][i];
+    if(!best[ch] || rank[r] > rank[best[ch]]) best[ch] = r;
+  }));
+  document.querySelectorAll(".key[id^='k-']").forEach(k => {
+    k.className = "key" + (best[k.dataset.key] ? " " + best[k.dataset.key] : "");
+  });
+}
+function renderBoard(){
+  for(let r = 0; r < ROWS; r++){
+    if(r < state.guesses.length) paintRow(r, state.guesses[r], evaluate(state.guesses[r], state.answer));
+    else if(r === state.guesses.length && !state.done) paintRow(r, state.current, null);
+    else paintRow(r, "", null);
+  }
+  paintKeys();
+}
+
+function renderHeader(){
+  el("puzzleLabel").textContent = state.mode === "daily" ? `Täglich · #${state.num}` : "Übungsmodus";
+}
+function renderResult(){
+  const done = state.done;
+  el("result").classList.toggle("show", done);
+  el("keyboard").style.display = done ? "none" : "";
+  if(!done){ el("countdown").textContent = ""; return; }
+  const n = state.guesses.length;
+  el("resHeadline").textContent = state.won ? PRAISE[n - 1] : "Diesmal nicht.";
+  el("resSub").innerHTML = state.won
+    ? `Gelöst in ${n} von ${ROWS} Versuchen.`
+    : `Das Wort war <b>${state.answer}</b>.`;
+  el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+  updateCountdown();
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state || !state.done || state.mode !== "daily"){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Nächstes Wort in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+function render(){
+  renderHeader();
+  renderBoard();
+  renderResult();
+}
+
+/* ================= Eingabe ================= */
+function press(key){
+  if(!state || state.done || busy) return;
+  const cur = [...state.current];
+  if(key === "Enter") return submit();
+  if(key === "Backspace"){
+    cur.pop();
+  }else if(/^[a-zäöü]$/.test(key) && cur.length < LEN){
+    cur.push(key);
+  }else return;
+  state.current = cur.join("");
+  paintRow(state.guesses.length, state.current, null);
+}
+
+function shakeRow(r){
+  const row = el(`row${r}`);
+  row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
+}
+
+function submit(){
+  const r = state.guesses.length;
+  const word = state.current;
+  if([...word].length < LEN){ shakeRow(r); toast("Zu wenige Buchstaben"); return; }
+  if(!ALLOWED.has(word)){ shakeRow(r); toast("Nicht in der Wortliste"); return; }
+
+  state.guesses.push(word);
+  state.current = "";
+  if(word === state.answer){ state.done = true; state.won = true; }
+  else if(state.guesses.length >= ROWS){ state.done = true; state.won = false; }
+  persist();
+  if(state.done && state.mode === "daily") recordResult(state.won, state.guesses.length, state.num);
+
+  // Felder nacheinander umdrehen
+  busy = true;
+  const res = evaluate(word, state.answer);
+  const delay = 280;
+  [...word].forEach((ch, c) => {
+    const t = el(`t${r}${c}`);
+    setTimeout(() => {
+      t.classList.add("flip");
+      setTimeout(() => { t.className = "tile flip " + res[c]; }, 220);
+    }, c * delay);
+  });
+  setTimeout(() => {
+    busy = false;
+    paintKeys();
+    if(state.done){
+      if(state.won){
+        for(let c = 0; c < LEN; c++) setTimeout(() => el(`t${r}${c}`).className = "tile correct win", c * 90);
+        toast(PRAISE[r]);
+      }else{
+        toast(state.answer.toUpperCase(), 2600);
+      }
+      setTimeout(() => {
+        renderResult();
+        if(state.mode === "daily") openStats();
+      }, 1500);
+    }
+  }, LEN * delay + 250);
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily" ? `FÜNF #${state.num}` : "FÜNF (Übung)";
+  const score = state.won ? `${state.guesses.length}/${ROWS}` : `X/${ROWS}`;
+  const sym = { correct:"🟩", present:"🟨", absent:"⬛" };
+  const lines = state.guesses.map(g => evaluate(g, state.answer).map(r => sym[r]).join(""));
+  return `${title} ${score}\n\n${lines.join("\n")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+function openStats(){ renderStats(); openOverlay("statsOverlay"); }
+const anyOverlay = () => !!document.querySelector(".overlay.show");
+
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnMode").addEventListener("click", () => {
+  if(busy) return;
+  state = state.mode === "daily" ? newPracticeState() : newDailyState();
+  render();
+});
+el("btnNew").addEventListener("click", () => { state = newPracticeState(); render(); });
+el("btnShare").addEventListener("click", doShare);
+el("keyboard").addEventListener("click", e => {
+  const k = e.target.closest(".key");
+  if(k){ press(k.dataset.key); k.blur(); }
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape"){ closeOverlays(); return; }
+  if(anyOverlay() || e.ctrlKey || e.metaKey || e.altKey) return;
+  const key = e.key.length === 1 ? e.key.toLowerCase().normalize("NFC") : e.key;
+  if(key === "Enter" || key === "Backspace" || /^[a-zäöü]$/.test(key)){
+    e.preventDefault();
+    press(key);
+  }
+});
+
+/* ================= Start ================= */
+buildBoard();
+buildKeyboard();
+state = newDailyState();
+render();
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+</script>
+</body>
+</html>

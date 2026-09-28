@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZIFFERN – Zielzahl erreichen</title>
+<meta name="description" content="Erreiche die Zielzahl mit sechs Zahlen und den Grundrechenarten. Jeden Tag drei neue Aufgaben.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/ziffern/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ZIFFERN – Zielzahl erreichen">
+<meta property="og:description" content="Erreiche die Zielzahl mit sechs Zahlen und den Grundrechenarten. Jeden Tag drei neue Aufgaben.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --gold:#e3b341;
+    --green:#2e7d46;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 16px 40px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:38px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:42px;height:42px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);display:flex;border-radius:8px}
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .puzzle-label{margin-top:14px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ---------- rounds ---------- */
+  .tabs{display:flex;gap:8px;margin-top:14px}
+  .tab{
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:10px;
+    padding:6px 12px;font-family:inherit;font-size:13px;cursor:pointer;min-width:84px;line-height:1.3;
+  }
+  .tab.cur{border-color:var(--accent);color:var(--text)}
+  .tab .st{display:block;font-size:13px;letter-spacing:1px;color:var(--gold);min-height:17px}
+
+  .target{margin-top:18px;text-align:center}
+  .target .lbl{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .target .val{font-size:56px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+
+  /* ---------- numbers & ops ---------- */
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;width:100%;max-width:330px}
+  .num{
+    aspect-ratio:1;border-radius:50%;border:2px solid var(--line);background:var(--panel);color:var(--text);
+    font-family:inherit;font-size:26px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums;
+    transition:transform .12s,background .12s,border-color .12s;
+  }
+  .num:hover:not(:disabled){border-color:#6b6d74}
+  .num.sel{background:var(--text);color:#111;border-color:var(--text)}
+  .num.new{animation:pop .25s ease-out}
+  .num.hit{background:var(--green);border-color:var(--green)}
+  .num.gone{visibility:hidden}
+  @keyframes pop{from{transform:scale(.6)}to{transform:none}}
+  .ops{display:flex;gap:10px;margin-top:18px}
+  .op{
+    width:58px;height:58px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+    font-family:inherit;font-size:28px;cursor:pointer;
+  }
+  .op:hover:not(:disabled){background:#3a3b40}
+  .op.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+  .op:disabled,.num:disabled{cursor:default}
+
+  .steps{margin-top:14px;min-height:20px;font-size:14px;color:var(--muted);text-align:center;line-height:1.6}
+  .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+
+  .roundinfo{
+    margin-top:14px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;font-size:14px;color:#d2d2d6;text-align:center;display:none;line-height:1.5;
+  }
+  .roundinfo.show{display:block}
+  .roundinfo b{color:var(--text)}
+
+  /* ---------- result ---------- */
+  .result{margin-top:18px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px}
+  .result.show{display:flex}
+  .result .headline{font-size:20px;font-weight:600}
+  .result .sub{font-size:14px;color:var(--muted)}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;margin-bottom:18px;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:26px;font-weight:600}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+  .dist{display:flex;flex-direction:column;gap:5px}
+  .distrow{display:flex;align-items:center;gap:8px;font-size:13px}
+  .distrow .k{width:22px;text-align:right;color:var(--muted)}
+  .distbar{background:var(--panel-2);border-radius:3px;padding:2px 6px;font-size:12px;text-align:right;min-width:24px;color:#fff}
+  .distbar.hit{background:var(--accent)}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;max-width:calc(100vw - 32px);text-align:center;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <path d="M11 17h10M16 12v10M27 17h10M12 31l8 8M20 31l-8 8M27 32h10M27 38h10" stroke="#e6503c" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+    <h1>ZIFFERN</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="target"><div class="lbl">Zielzahl</div><div class="val" id="target">…</div></div>
+
+  <div class="nums" id="nums"></div>
+  <div class="ops" id="ops">
+    <button class="op" data-op="+">+</button>
+    <button class="op" data-op="−">−</button>
+    <button class="op" data-op="×">×</button>
+    <button class="op" data-op="÷">÷</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+  <div class="controls" id="controls">
+    <button class="btn" id="btnUndo">Rückgängig</button>
+    <button class="btn" id="btnSubmit">Einreichen</button>
+  </div>
+  <div class="roundinfo" id="roundInfo"></div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neue Aufgaben</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Erreiche die <strong>Zielzahl</strong>, indem du die sechs Zahlen mit <strong>+ − × ÷</strong> verrechnest.</p>
+    <ul>
+      <li>Tippe eine Zahl, dann ein Rechenzeichen, dann eine zweite Zahl. Das Ergebnis ersetzt die beiden Zahlen und du kannst damit weiterrechnen.</li>
+      <li>Nur ganze, positive Ergebnisse sind erlaubt.</li>
+      <li>Du musst nicht alle Zahlen verwenden.</li>
+    </ul>
+    <p>Jeden Tag gibt es <strong>drei Runden</strong>, jede schwerer als die davor. Kommst du nicht genau hin, reiche deine beste Zahl ein:</p>
+    <ul>
+      <li>⭐⭐⭐ genau getroffen</li>
+      <li>⭐⭐ höchstens 10 daneben</li>
+      <li>⭐ höchstens 25 daneben</li>
+    </ul>
+    <p>Jede Zielzahl ist exakt erreichbar. Über <span style="color:var(--accent)">⇄</span> gibt es im <strong>Übungsmodus</strong> beliebig viele neue Aufgaben.</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sAvg">–</span><span class="l">Ø Sterne</span></div>
+      <div><span class="n" id="sPerfect">0</span><span class="l">Alle 9 Sterne</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Serie</span></div>
+    </div>
+    <h2 style="font-size:15px">Sterne pro Tag</h2>
+    <div class="dist" id="dist"></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px">Nur tägliche Aufgaben zählen. Die Serie zählt Tage in Folge, an denen du gespielt hast.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const SLUG = "ziffern";
+const EPOCH = Date.UTC(2026, 8, 28);      // Tag #1
+const K_DAILY = "ziffern.daily";
+const K_STATS = "ziffern.stats";
+const K_HELP = "ziffern.seenHelp";
+const SPECS = [   // drei Runden pro Tag, jede schwerer
+  { small:4, mid:2, big:0, min:40,  max:99  },
+  { small:3, mid:2, big:1, min:100, max:249 },
+  { small:2, mid:2, big:2, min:250, max:499 },
+];
+const SMALL = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const MID = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25];
+const BIG = [25, 50, 75, 100];
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum / Zufall ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000) + 1);
+}
+function hashStr(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ================= Rechnen ================= */
+function apply(a, op, b){
+  if(op === "+") return a + b;
+  if(op === "×") return a * b;
+  if(op === "−") return a > b ? a - b : null;
+  if(op === "÷") return b > 0 && a % b === 0 ? a / b : null;
+  return null;
+}
+
+// Alle erreichbaren Werte – je mit möglichst wenigen benutzten Zahlen und einem Lösungsweg
+function solveAll(nums){
+  const best = new Map();
+  const seen = new Set();
+  function note(it){ const b = best.get(it.v); if(!b || it.n < b.n) best.set(it.v, it); }
+  function rec(items){
+    items.forEach(note);
+    if(items.length < 2) return;
+    const key = items.map(x => x.v).sort((a, b) => a - b).join(",");
+    if(seen.has(key)) return;
+    seen.add(key);
+    for(let i = 0; i < items.length; i++) for(let j = i + 1; j < items.length; j++){
+      let a = items[i], b = items[j];
+      if(a.v < b.v) [a, b] = [b, a];
+      const rest = items.filter((_, k) => k !== i && k !== j);
+      const n = a.n + b.n;
+      const mk = (v, op) => rec([...rest, { v, n, steps:[...a.steps, ...b.steps, `${a.v} ${op} ${b.v} = ${v}`] }]);
+      mk(a.v + b.v, "+");
+      if(b.v > 1) mk(a.v * b.v, "×");
+      if(a.v !== b.v) mk(a.v - b.v, "−");
+      if(b.v > 1 && a.v % b.v === 0) mk(a.v / b.v, "÷");
+    }
+  }
+  rec(nums.map(v => ({ v, n:1, steps:[] })));
+  return best;
+}
+
+function pickDistinct(rnd, pool, k, taken){
+  const out = [];
+  while(out.length < k){
+    const v = pool[Math.floor(rnd() * pool.length)];
+    if(!out.includes(v) && !taken.includes(v)) out.push(v);
+  }
+  return out;
+}
+function makeRound(rnd, spec){
+  for(;;){
+    const nums = [];
+    nums.push(...pickDistinct(rnd, SMALL, spec.small, nums));
+    nums.push(...pickDistinct(rnd, MID, spec.mid, nums));
+    nums.push(...pickDistinct(rnd, BIG, spec.big, nums));
+    nums.sort((a, b) => a - b);
+    // Zielzahl: exakt erreichbar, braucht aber mindestens drei der Zahlen
+    const cands = [...solveAll(nums).values()]
+      .filter(x => x.v >= spec.min && x.v <= spec.max && x.n >= 3 && !nums.includes(x.v))
+      .sort((a, b) => a.v - b.v);
+    if(!cands.length) continue;
+    const t = cands[Math.floor(rnd() * cands.length)];
+    return { start:nums, target:t.v, solution:t.steps };
+  }
+}
+function makePuzzle(seed){
+  const rnd = mulberry32(seed);
+  return SPECS.map(spec => makeRound(rnd, spec));
+}
+
+/* ================= Spielzustand ================= */
+// Runde: {start, target, solution, nums:[{id, v}], history:[{nums, step}], done, best, stars}
+let state = null;   // {mode, dateKey, num, rounds, cur}
+let sel = { a:null, op:null };
+let nextId = 1;
+
+function freshRound(r){
+  return Object.assign(r, { nums:r.start.map(v => ({ id:nextId++, v })), history:[], done:false, best:null, stars:0 });
+}
+function newDailyState(){
+  const dateKey = todayKey();
+  const saved = load(K_DAILY, null);
+  if(saved && saved.dateKey === dateKey && saved.rounds){
+    nextId = 1 + Math.max(0, ...saved.rounds.flatMap(r => r.nums.map(n => n.id)));
+    return Object.assign(saved, { mode:"daily" });
+  }
+  const rounds = makePuzzle(hashStr("ziffern-" + dateKey)).map(freshRound);
+  return { mode:"daily", dateKey, num:puzzleNumber(dateKey), rounds, cur:0 };
+}
+function newPracticeState(){
+  const rounds = makePuzzle((Math.random() * 4294967296) >>> 0).map(freshRound);
+  return { mode:"practice", rounds, cur:0 };
+}
+const round = () => state.rounds[state.cur];
+const totalStars = () => state.rounds.reduce((s, r) => s + r.stars, 0);
+const allDone = () => state.rounds.every(r => r.done);
+
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, num:state.num, rounds:state.rounds, cur:state.cur });
+  const done = state.rounds.filter(r => r.done).length;
+  if(allDone()) reportStatus(totalStars() ? "won" : "lost", `${totalStars()}/9 Sterne`);
+  else if(done || round().history.length) reportStatus("playing", `Runde ${Math.min(3, done + 1)}/3`);
+}
+
+/* ================= Statistik ================= */
+function recordResult(){
+  const s = Object.assign({ played:0, total:0, perfect:0, streak:0, lastNum:null, dist:{} }, load(K_STATS, {}));
+  if(s.lastNum === state.num) return;
+  s.streak = s.lastNum === state.num - 1 ? s.streak + 1 : 1;
+  s.lastNum = state.num;
+  s.played++;
+  const t = totalStars();
+  s.total += t;
+  if(t === 9) s.perfect++;
+  s.dist[t] = (s.dist[t] || 0) + 1;
+  save(K_STATS, s);
+}
+function openStats(){
+  const s = Object.assign({ played:0, total:0, perfect:0, streak:0, lastNum:null, dist:{} }, load(K_STATS, {}));
+  el("sPlayed").textContent = s.played;
+  el("sAvg").textContent = s.played ? (s.total / s.played).toFixed(1).replace(".", ",") : "–";
+  el("sPerfect").textContent = s.perfect;
+  el("sStreak").textContent = s.lastNum !== null && s.lastNum >= puzzleNumber(todayKey()) - 1 ? s.streak : 0;
+  const rows = [];
+  for(let k = 9; k >= 0; k--) rows.push([k, s.dist[k] || 0]);
+  const peak = Math.max(1, ...rows.map(r => r[1]));
+  const hit = state.mode === "daily" && allDone() ? totalStars() : null;
+  el("dist").innerHTML = rows.map(([k, v]) =>
+    `<div class="distrow"><span class="k">${k}★</span>`
+    + `<div class="distbar${k === hit ? " hit" : ""}" style="width:${Math.max(8, Math.round(v / peak * 100))}%">${v}</div></div>`
+  ).join("");
+  openOverlay("statsOverlay");
+}
+
+/* ================= UI ================= */
+const el = id => document.getElementById(id);
+const starStr = n => "★".repeat(n) + "☆".repeat(3 - n);
+
+function toast(msg, ms = 1700){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function renderTabs(){
+  el("tabs").innerHTML = state.rounds.map((r, i) =>
+    `<button class="tab${i === state.cur ? " cur" : ""}" data-i="${i}">Runde ${i + 1}`
+    + `<span class="st">${r.done ? starStr(r.stars) : ""}</span></button>`
+  ).join("");
+}
+function renderRound(animId){
+  const r = round();
+  el("target").textContent = r.target;
+  const slots = r.nums.slice();
+  while(slots.length < 6) slots.push(null);
+  el("nums").innerHTML = slots.map(n => n
+    ? `<button class="num${sel.a === n.id ? " sel" : ""}${n.id === animId ? " new" : ""}${r.done && n.v === r.best ? " hit" : ""}" data-id="${n.id}"${r.done ? " disabled" : ""}>${n.v}</button>`
+    : `<button class="num gone" disabled></button>`
+  ).join("");
+  document.querySelectorAll(".op").forEach(b => {
+    b.classList.toggle("sel", sel.op === b.dataset.op);
+    b.disabled = r.done;
+  });
+  el("steps").textContent = r.history.map(h => h.step).join("  ·  ");
+  el("controls").style.display = r.done ? "none" : "";
+  el("btnUndo").disabled = !r.history.length;
+  const info = el("roundInfo");
+  if(r.done){
+    const diff = Math.abs(r.best - r.target);
+    const head = diff === 0 ? `<b>Genau getroffen!</b> ${starStr(r.stars)}` : `<b>${r.best}</b> – ${diff} daneben · ${starStr(r.stars)}`;
+    info.innerHTML = diff === 0 ? head : `${head}<br>Eine Lösung: ${r.solution.join(", ")}`;
+    info.classList.add("show");
+  }else{
+    info.classList.remove("show");
+  }
+}
+function renderResult(){
+  const res = el("result");
+  if(!allDone()){ res.classList.remove("show"); return; }
+  res.classList.add("show");
+  const t = totalStars();
+  el("resHeadline").textContent = t === 9 ? "Perfekt – alle 9 Sterne!" : `${t} von 9 Sternen`;
+  el("resSub").textContent = state.rounds.map(r => starStr(r.stars)).join("   ");
+  el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+  updateCountdown();
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state || state.mode !== "daily" || !allDone()){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Neue Aufgaben in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+function render(animId){
+  el("puzzleLabel").textContent = state.mode === "daily" ? `Täglich · #${state.num}` : "Übungsmodus";
+  renderTabs();
+  renderRound(animId);
+  renderResult();
+}
+
+/* ================= Spielzüge ================= */
+function finishRound(r, best){
+  r.done = true;
+  r.best = best;
+  const diff = Math.abs(best - r.target);
+  r.stars = diff === 0 ? 3 : diff <= 10 ? 2 : diff <= 25 ? 1 : 0;
+  sel = { a:null, op:null };
+  persist();
+  if(allDone() && state.mode === "daily") recordResult();
+  render();
+  // weiter zur nächsten offenen Runde
+  const next = state.rounds.findIndex(x => !x.done);
+  if(next >= 0) setTimeout(() => { state.cur = next; persist(); render(); }, 1300);
+  else setTimeout(() => el("result").scrollIntoView({ behavior:"smooth", block:"nearest" }), 200);
+}
+
+function tapNumber(id){
+  const r = round();
+  if(r.done) return;
+  if(sel.a === null || sel.op === null){
+    sel.a = sel.a === id ? null : id;
+    renderRound();
+    return;
+  }
+  if(id === sel.a){ sel = { a:null, op:null }; renderRound(); return; }
+  const A = r.nums.find(n => n.id === sel.a), B = r.nums.find(n => n.id === id);
+  const v = apply(A.v, sel.op, B.v);
+  if(v === null){
+    toast(sel.op === "÷" ? "Geht nicht glatt auf – nur ganze Zahlen." : "Ergebnis muss positiv sein.");
+    return;
+  }
+  r.history.push({ nums:r.nums.map(n => ({ ...n })), step:`${A.v} ${sel.op} ${B.v} = ${v}` });
+  const res = { id:nextId++, v };
+  r.nums = r.nums.filter(n => n.id !== A.id).map(n => n.id === B.id ? res : n);
+  sel = { a:res.id, op:null };
+  persist();
+  if(v === r.target){ renderRound(res.id); setTimeout(() => finishRound(r, v), 350); return; }
+  renderRound(res.id);
+}
+function tapOp(op){
+  if(round().done) return;
+  if(sel.a === null){ toast("Wähle zuerst eine Zahl."); return; }
+  sel.op = sel.op === op ? null : op;
+  renderRound();
+}
+function undo(){
+  const r = round();
+  if(r.done || !r.history.length) return;
+  r.nums = r.history.pop().nums;
+  sel = { a:null, op:null };
+  persist();
+  renderRound();
+}
+function submitBest(){
+  const r = round();
+  if(r.done) return;
+  const best = r.nums.reduce((b, n) => Math.abs(n.v - r.target) < Math.abs(b - r.target) ? n.v : b, r.nums[0].v);
+  finishRound(r, best);
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily" ? `ZIFFERN #${state.num}` : "ZIFFERN (Übung)";
+  const lines = state.rounds.map((r, i) => `Runde ${i + 1}: ${"⭐".repeat(r.stars)}${"▫️".repeat(3 - r.stars)}`);
+  return `${title} · ${totalStars()}/9\n${lines.join("\n")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals & Events ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeOverlays(); });
+
+el("nums").addEventListener("click", e => { const b = e.target.closest(".num[data-id]"); if(b) tapNumber(Number(b.dataset.id)); });
+el("ops").addEventListener("click", e => { const b = e.target.closest(".op"); if(b) tapOp(b.dataset.op); });
+el("tabs").addEventListener("click", e => {
+  const b = e.target.closest(".tab");
+  if(!b) return;
+  state.cur = Number(b.dataset.i);
+  sel = { a:null, op:null };
+  render();
+});
+el("btnUndo").addEventListener("click", undo);
+el("btnSubmit").addEventListener("click", submitBest);
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnShare").addEventListener("click", doShare);
+function switchTo(make){
+  el("target").textContent = "…";
+  setTimeout(() => { state = make(); sel = { a:null, op:null }; render(); }, 20);
+}
+el("btnMode").addEventListener("click", () => switchTo(state.mode === "daily" ? newPracticeState : newDailyState));
+el("btnNew").addEventListener("click", () => switchTo(newPracticeState));
+
+/* ================= Start ================= */
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+switchTo(newDailyState);
+</script>
+</body>
+</html>

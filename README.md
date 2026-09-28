@@ -1,18 +1,35 @@
-# Tägliche Rätsel – ANGLE & CONTEXTO
+# Tägliche Rätsel
 
-Kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
+Sieben kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
+Jedes Spiel steckt in einem eigenen Ordner und ist eine einzelne HTML-Datei.
 
-| Pfad | Inhalt |
-|---|---|
-| `/` | Startseite: alle Spiele mit dem heutigen Spielstand |
-| `/angle` | ANGLE – Winkel raten (deutsch) |
-| `/contexto` | CONTEXTO – das geheime Wort über seine Bedeutung finden (englisch) |
+| Pfad | Spiel | Kurz |
+|---|---|---|
+| `/` | Startseite | alle Spiele mit dem heutigen Spielstand |
+| `/fuenf` | FÜNF | Wort mit 5 Buchstaben in 6 Versuchen (wie Wordle, deutsch) |
+| `/verbindungen` | VERBINDUNGEN | 16 Begriffe in 4 Gruppen sortieren (wie Connections, deutsch) |
+| `/contexto` | CONTEXTO | geheimes Wort über seine Bedeutung finden (englisch) |
+| `/ziffern` | ZIFFERN | Zielzahl mit + − × ÷ erreichen, 3 Runden (wie Digits) |
+| `/sudoku` | SUDOKU | tägliches Sudoku, Übungsmodus in 3 Stufen |
+| `/damen` | DAMEN | eine Dame pro Zeile, Spalte und Farbregion (wie Queens) |
+| `/angle` | ANGLE | Winkel schätzen in 4 Versuchen |
 
-In jedem Spiel führt das ▦-Symbol oben links zurück zur Startseite, am Ende einer Runde zusätzlich
-„Weitere Spiele“ bzw. „More games“.
+Alle Tagesrätsel beginnen mit #1 am 28.09.2026 (ANGLE zählt seit 2024) und wechseln um Mitternacht
+Ortszeit. In jedem Spiel führt das ▦-Symbol oben links zurück zur Startseite, am Ende einer Runde
+zusätzlich „Weitere Spiele“.
 
-Die Startseite liest den Spielstand aus dem `localStorage` der Spiele (`angleguesser.daily`,
-`contexto.en.games`). Wer dort Schlüssel oder Format ändert, muss `index.html` mitziehen.
+### Spielstand auf der Startseite
+
+Die neueren Spiele (FÜNF, VERBINDUNGEN, ZIFFERN, SUDOKU, DAMEN) melden ihren Tagesstand selbst unter
+dem `localStorage`-Schlüssel `raetsel.status`:
+
+```js
+{ "<ordner>": { "dateKey": "2026-09-28", "state": "playing" | "won" | "lost", "text": "Gelöst · 3/6" } }
+```
+
+ANGLE und CONTEXTO liest die Startseite direkt aus deren eigenen Speicherständen
+(`angleguesser.daily`, `contexto.en.games`) – wer dort Schlüssel oder Format ändert, muss `index.html`
+mitziehen.
 
 ## ANGLE – `/angle`
 
@@ -78,14 +95,17 @@ Dann auf [vercel.com/new](https://vercel.com/new) das Repo importieren. Framewor
 ```
 index.html     Startseite
 favicon.svg    Logo der Startseite
-angle/         ANGLE: index.html (HTML + CSS + JS + SVG) und favicon.svg
-contexto/      CONTEXTO, siehe unten
+<spiel>/       je Spiel: index.html (HTML + CSS + JS) und favicon.svg
+fuenf/words.js Wortlisten für FÜNF (erzeugt)
+contexto/data/ Ranglisten für CONTEXTO (erzeugt)
+*/tools/       Skripte, die diese Daten erzeugen
 vercel.json    Static-Hosting-Konfiguration (cleanUrls, Cache-Header)
-.vercelignore  hält die Build-Werkzeuge (und damit die Lösungsliste) aus dem Deployment
+.vercelignore  hält die Build-Werkzeuge aus dem Deployment
 ```
 
 Ein weiteres Spiel kommt in einen eigenen Ordner, bekommt auf der Startseite eine Karte
-(`<a class="card">` in `index.html`) und im Spiel einen Link zurück auf `/`.
+(`<a class="card" data-game="<ordner>">` in `index.html`), im Spiel einen Link zurück auf `/`
+und meldet seinen Tagesstand unter `raetsel.status` (siehe oben).
 
 ## Anpassen
 
@@ -132,3 +152,48 @@ python3 contexto/tools/build_en.py
 
 Der erste Lauf lädt ~1,4 GB Wortvektoren nach `contexto/tools/.cache/` (nicht im Repo).
 Neue Lösungswörter **hinten** an `secret_words_en.txt` anhängen – sonst verschieben sich die bisherigen Spiele.
+
+## FÜNF – `/fuenf`
+
+Wordle auf Deutsch: 6 Versuche, Ä/Ö/Ü sind eigene Buchstaben, ß kommt nicht vor.
+Übungsmodus mit Zufallswörtern, Statistik mit Verteilung der Versuche, Teilen als Emoji-Grid.
+
+- `fuenf/tools/answers.txt` – 452 Lösungswörter, Zeile n = Rätsel #n (reicht bis Dezember 2027, danach von vorn).
+  Neue Wörter **hinten** anhängen.
+- `fuenf/tools/build_words.py` – erzeugt `fuenf/words.js`: die Lösungen plus die 12.000 häufigsten deutschen
+  Wörter mit fünf Buchstaben aus [wordfreq](https://github.com/rspeer/wordfreq) als erlaubte Tipps.
+
+```bash
+pip install wordfreq
+python3 fuenf/tools/build_words.py
+```
+
+## VERBINDUNGEN – `/verbindungen`
+
+16 Begriffe, vier Gruppen, vier Fehler erlaubt; bei drei von vier Treffern gibt es einen Hinweis.
+Frühere Rätsel lassen sich über den Kalender nachspielen.
+
+Die 30 Rätsel stehen als `PUZZLES` direkt in `verbindungen/index.html` – je Rätsel vier Gruppen von leicht bis
+um die Ecke gedacht: `["Name", "Begriff", "Begriff", "Begriff", "Begriff"]`. Ein `|` im Begriff markiert,
+wo er im Feld umbrechen darf (`"Rumpel|stilzchen"`). Nach 30 Tagen (ab 28.10.2026) wiederholen sie sich –
+neue Rätsel einfach hinten anhängen. Jedes Rätsel muss genau eine Aufteilung haben, die ganz aufgeht.
+
+## ZIFFERN – `/ziffern`
+
+Drei Runden pro Tag mit je sechs Zahlen und einer Zielzahl (40–99, 100–249, 250–499). Nur ganze, positive
+Zwischenergebnisse; wer nicht genau hinkommt, reicht die beste Zahl ein (⭐⭐⭐ genau, ⭐⭐ ≤ 10, ⭐ ≤ 25 daneben).
+
+Die Aufgaben entstehen im Browser aus dem Datum: Ein Löser rechnet alle erreichbaren Zahlen durch und wählt eine
+Zielzahl, die exakt geht, aber mindestens drei der Zahlen braucht. Ein Lösungsweg wird nach der Runde angezeigt.
+
+## SUDOKU – `/sudoku`
+
+Tägliches Sudoku (Mittel, ~30 Vorgaben), Übungsmodus Leicht/Mittel/Schwer. Notizen, Rückgängig, Konflikt-Markierung,
+Tastatursteuerung, Timer. Der Generator füllt ein zufälliges Gitter und entfernt Felder punktsymmetrisch, solange
+die Lösung eindeutig bleibt – alles im Browser, aus dem Datum abgeleitet.
+
+## DAMEN – `/damen`
+
+Wie LinkedIn Queens: je eine Dame pro Zeile, Spalte und Farbregion, keine zwei berühren sich. Tagesrätsel wechseln
+zwischen 7×7, 8×8 und 9×9. Der Generator wählt eine Lösung, lässt von jeder Dame aus eine Region wachsen und verschiebt
+so lange einzelne Felder zwischen Regionen, bis es keine zweite Lösung mehr gibt.
