@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PUNKTLANDUNG – Orte auf der Karte finden</title>
+<meta name="description" content="Fünf Orte am Tag: Tippe auf der Weltkarte, wo sie liegen. Je näher, desto mehr Punkte.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/punktlandung/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PUNKTLANDUNG – Orte auf der Karte finden">
+<meta property="og:description" content="Fünf Orte am Tag: Tippe auf der Weltkarte, wo sie liegen. Je näher, desto mehr Punkte.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --ocean:#0f1c29;
+    --land:#2b3036;
+    --border:#4b525b;
+    --truth:#4caf6e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:900px;padding:18px 12px 40px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:30px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:40px;height:40px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);display:flex;border-radius:8px}
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .puzzle-label{margin-top:12px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ---------- round ---------- */
+  .dots{display:flex;gap:6px;margin-top:10px}
+  .dots span{
+    min-width:34px;height:24px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+    font-size:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);padding:0 6px;font-variant-numeric:tabular-nums;
+  }
+  .dots span.cur{border-color:var(--accent);color:var(--text)}
+  .dots span.done{color:#111;border-color:transparent}
+  .prompt{margin-top:12px;text-align:center;min-height:54px}
+  .prompt .q{font-size:14px;color:var(--muted)}
+  .prompt .place{font-size:24px;font-weight:700;line-height:1.2}
+  .prompt .country{font-size:14px;color:#d2d2d6}
+
+  /* ---------- map ---------- */
+  .mapbox{position:relative;width:100%;margin-top:10px;border-radius:12px;overflow:hidden;background:#0a141e;border:1px solid var(--line)}
+  #map{display:block;width:100%;touch-action:none;cursor:crosshair;user-select:none}
+  .sphere{fill:var(--ocean)}
+  .graticule{fill:none;stroke:#ffffff0d;stroke-width:.5px;vector-effect:non-scaling-stroke}
+  .country{fill:var(--land);stroke:var(--border);stroke-width:.5px;vector-effect:non-scaling-stroke}
+  .pin{fill:var(--accent);stroke:#fff}
+  .truth{fill:var(--truth);stroke:#fff}
+  .link{fill:none;stroke:#fff;stroke-dasharray:5 4;stroke-width:1.5px;vector-effect:non-scaling-stroke;opacity:.85}
+  .old{opacity:.55}
+  .zoombtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+  .zoombtns button{
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:#1e1f22e6;color:var(--text);
+    font-size:20px;line-height:1;cursor:pointer;font-family:inherit;
+  }
+  .zoombtns button:hover{background:#3a3b40}
+  .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;min-height:46px}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 18px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+  .feedback{margin-top:10px;font-size:15px;text-align:center;min-height:22px}
+  .feedback b{font-size:17px}
+
+  /* ---------- result ---------- */
+  .result{margin-top:16px;width:100%;max-width:520px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px}
+  .result.show{display:flex}
+  .result .headline{font-size:22px;font-weight:700}
+  .rounds{width:100%;display:flex;flex-direction:column;gap:5px}
+  .rrow{display:grid;grid-template-columns:22px 1fr auto auto;gap:10px;align-items:center;background:var(--panel);border-radius:8px;padding:8px 12px;font-size:14px;text-align:left}
+  .rrow .d{color:var(--muted);font-variant-numeric:tabular-nums}
+  .rrow .p{font-weight:700;font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .statnums{display:flex;justify-content:space-between;text-align:center;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <circle cx="24" cy="24" r="12" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+      <circle cx="24" cy="24" r="5.5" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+      <circle cx="24" cy="24" r="1.8" fill="#e6503c"/>
+    </svg>
+    <h1>PUNKTLANDUNG</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+  <div class="dots" id="dots"></div>
+  <div class="prompt" id="prompt"></div>
+
+  <div class="mapbox" id="mapbox">
+    <svg id="map"></svg>
+    <div class="zoombtns">
+      <button id="zoomIn" aria-label="Hineinzoomen">+</button>
+      <button id="zoomOut" aria-label="Herauszoomen">−</button>
+      <button id="zoomReset" aria-label="Ganze Welt" style="font-size:16px">⟲</button>
+    </div>
+    <div class="loading" id="loading">Karte lädt …</div>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+  <div class="controls" id="controls">
+    <button class="btn primary" id="btnConfirm" disabled>Tippen, dann bestätigen</button>
+    <button class="btn primary" id="btnNext" style="display:none">Weiter</button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="rounds" id="resRounds"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neue Runde</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Jeden Tag gibt es <strong>fünf Orte</strong> – Städte und Sehenswürdigkeiten, von leicht bis knifflig.</p>
+    <ul>
+      <li><strong>Tippe</strong> auf die Karte, wo du den Ort vermutest. Du kannst den Punkt verschieben, bis du auf <strong>Bestätigen</strong> tippst.</li>
+      <li>Mit zwei Fingern, dem Mausrad oder den Knöpfen <strong>zoomst</strong> du, durch Ziehen verschiebst du die Karte.</li>
+      <li>Pro Ort gibt es bis zu <strong>100 Punkte</strong> – je näher, desto mehr: unter 10 km gibt es fast alles, bei 1.000 km noch rund 40.</li>
+    </ul>
+    <p>Über <span style="color:var(--accent)">⇄</span> spielst du im <strong>Übungsmodus</strong> beliebig viele Runden.</p>
+    <p style="font-size:12px;color:var(--muted)">Karte und Städte: Natural Earth (gemeinfrei).</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sAvg">–</span><span class="l">Ø Punkte</span></div>
+      <div><span class="n" id="sBest">–</span><span class="l">Bestwert</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Serie</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:16px 0 0">Nur tägliche Runden zählen, maximal 500 Punkte pro Tag.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/geo/lib/d3.min.js"></script>
+<script src="/geo/lib/topojson-client.min.js"></script>
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const SLUG = "punktlandung";
+const EPOCH = Date.UTC(2026, 8, 28);      // Runde #1
+const K_DAILY = "punktlandung.daily";
+const K_STATS = "punktlandung.stats";
+const K_HELP = "punktlandung.seenHelp";
+const TIERS = ["A", "B", "L", "B", "C"];   // leicht → knifflig, L = Sehenswürdigkeit
+const EARTH_KM = 6371;
+const SCALE_KM = 1100;                     // Punkte = 100 · e^(−Entfernung / SCALE_KM)
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum / Zufall ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000) + 1);
+}
+function hashStr(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ================= Punkte ================= */
+const distKm = (a, b) => d3.geoDistance(a, b) * EARTH_KM;
+const pointsFor = km => Math.round(100 * Math.exp(-km / SCALE_KM));
+const emojiFor = p => p >= 95 ? "🎯" : p >= 75 ? "🟩" : p >= 50 ? "🟨" : p >= 25 ? "🟧" : "🟥";
+const colorFor = p => p >= 95 ? "#4caf6e" : p >= 75 ? "#6fbf73" : p >= 50 ? "#e3c567" : p >= 25 ? "#f0a35e" : "#e8735c";
+const fmtKm = km => km < 10 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km).toLocaleString("de-DE")} km`;
+
+/* ================= Spielzustand ================= */
+// Ort: [Name, Land, Breite, Länge, Stufe]; Runde: {place, guess:[lon,lat]|null, km, pts}
+let places = null;
+let state = null;   // {mode, dateKey, num, rounds, cur, done}
+let pin = null;     // vorläufiger Tipp [lon, lat]
+
+function pickPlaces(rnd){
+  const picked = [], countries = new Set();
+  for(const tier of TIERS){
+    const pool = places.filter(p => p[4] === tier && !countries.has(p[1]));
+    const p = pool[Math.floor(rnd() * pool.length)];
+    picked.push(p); countries.add(p[1]);
+  }
+  return picked;
+}
+function newDailyState(){
+  const dateKey = todayKey();
+  const saved = load(K_DAILY, null);
+  if(saved && saved.dateKey === dateKey && saved.rounds) return Object.assign(saved, { mode:"daily" });
+  const rounds = pickPlaces(mulberry32(hashStr("punktlandung-" + dateKey))).map(place => ({ place, guess:null, km:null, pts:null }));
+  return { mode:"daily", dateKey, num:puzzleNumber(dateKey), rounds, cur:0, done:false };
+}
+function newPracticeState(){
+  const rounds = pickPlaces(Math.random).map(place => ({ place, guess:null, km:null, pts:null }));
+  return { mode:"practice", rounds, cur:0, done:false };
+}
+const total = () => state.rounds.reduce((s, r) => s + (r.pts || 0), 0);
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, num:state.num, rounds:state.rounds, cur:state.cur, done:state.done });
+  if(state.done) reportStatus(total() ? "won" : "lost", `${total()}/500 Punkte`);
+  else if(state.rounds[0].guess) reportStatus("playing", `Ort ${Math.min(5, state.cur + 1)}/5`);
+}
+
+/* ================= Karte ================= */
+const el = id => document.getElementById(id);
+const svg = d3.select("#map");
+const view = svg.append("g");
+const layerMap = view.append("g");
+const layerMarks = view.append("g");
+const projection = d3.geoNaturalEarth1();
+const geoPath = d3.geoPath(projection);
+let W = 0, H = 0, K = 1;
+const zoom = d3.zoom().scaleExtent([1, 80]).clickDistance(8)
+  .on("zoom", e => { view.attr("transform", e.transform); K = e.transform.k; scaleMarks(); });
+
+function sizeMap(){
+  W = el("mapbox").clientWidth;
+  H = Math.round(Math.min(Math.max(W * 0.8, 280), window.innerHeight * 0.6, W * 0.62 + 120));
+  svg.attr("width", W).attr("height", H).attr("viewBox", `0 0 ${W} ${H}`);
+  projection.fitExtent([[4, 4], [W - 4, H - 4]], { type:"Sphere" });
+  zoom.extent([[0, 0], [W, H]]).translateExtent([[0, 0], [W, H]]);
+}
+function drawMap(world){
+  layerMap.selectAll("*").remove();
+  layerMap.append("path").attr("class", "sphere").attr("d", geoPath({ type:"Sphere" }));
+  layerMap.append("path").attr("class", "graticule").attr("d", geoPath(d3.geoGraticule10()));
+  layerMap.selectAll(".country").data(topojson.feature(world, world.objects.countries).features)
+    .join("path").attr("class", "country").attr("d", geoPath);
+}
+function scaleMarks(){
+  layerMarks.selectAll("circle").attr("r", function(){ return (+this.dataset.r || 6) / K; })
+    .attr("stroke-width", 1.5 / K);
+}
+function drawMarks(){
+  layerMarks.selectAll("*").remove();
+  const r = state.rounds;
+  r.forEach((round, i) => {
+    if(!round.guess || (!state.done && i !== state.cur)) return;
+    layerMarks.append("path").attr("class", "link").attr("d", geoPath({ type:"LineString", coordinates:[round.guess, [round.place[3], round.place[2]]] }));
+    const [tx, ty] = projection([round.place[3], round.place[2]]);
+    const [gx, gy] = projection(round.guess);
+    layerMarks.append("circle").attr("class", "pin").attr("cx", gx).attr("cy", gy).attr("data-r", 5);
+    layerMarks.append("circle").attr("class", "truth").attr("cx", tx).attr("cy", ty).attr("data-r", 6);
+  });
+  if(pin && !state.done && !state.rounds[state.cur].guess){
+    const [x, y] = projection(pin);
+    layerMarks.append("circle").attr("class", "pin").attr("cx", x).attr("cy", y).attr("data-r", 7);
+  }
+  scaleMarks();
+}
+// Ausschnitt so wählen, dass alle Punkte sichtbar sind
+function zoomTo(coords, maxK = 12){
+  const pts = coords.map(c => projection(c));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const k = Math.max(1, Math.min(maxK, 0.7 / Math.max((x1 - x0) / W, (y1 - y0) / H, 1e-3)));
+  const t = d3.zoomIdentity.translate(W / 2, H / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+  svg.transition().duration(750).call(zoom.transform, t);
+}
+function resetZoom(animate = true){
+  (animate ? svg.transition().duration(500) : svg).call(zoom.transform, d3.zoomIdentity);
+}
+
+svg.on("click", ev => {
+  if(!state || state.done || state.rounds[state.cur].guess) return;
+  const [x, y] = d3.pointer(ev, view.node());
+  const ll = projection.invert([x, y]);
+  if(!ll || !isFinite(ll[0]) || Math.abs(ll[0]) > 180 || Math.abs(ll[1]) > 90) return;
+  const back = projection(ll);
+  if(Math.hypot(back[0] - x, back[1] - y) > 1) return;   // außerhalb der Weltkugel
+  pin = ll;
+  drawMarks();
+  el("btnConfirm").disabled = false;
+  el("btnConfirm").textContent = "Bestätigen";
+});
+svg.call(zoom).on("dblclick.zoom", null);
+el("zoomIn").addEventListener("click", () => svg.transition().duration(250).call(zoom.scaleBy, 2));
+el("zoomOut").addEventListener("click", () => svg.transition().duration(250).call(zoom.scaleBy, 0.5));
+el("zoomReset").addEventListener("click", () => resetZoom());
+
+/* ================= Spielablauf ================= */
+function toast(msg, ms = 1600){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+function renderDots(){
+  el("dots").innerHTML = state.rounds.map((r, i) => r.pts !== null
+    ? `<span class="done" style="background:${colorFor(r.pts)}">${r.pts}</span>`
+    : `<span class="${i === state.cur && !state.done ? "cur" : ""}">${i + 1}</span>`).join("");
+}
+function renderPrompt(){
+  if(state.done){ el("prompt").innerHTML = ""; return; }
+  const p = state.rounds[state.cur].place;
+  el("prompt").innerHTML = `<div class="q">Wo liegt …</div><div class="place">${esc(p[0])}</div><div class="country">${esc(p[1])}</div>`;
+}
+function renderControls(){
+  const r = state.rounds[state.cur];
+  el("controls").style.display = state.done ? "none" : "";
+  el("btnConfirm").style.display = r && !r.guess ? "" : "none";
+  el("btnNext").style.display = r && r.guess && !state.done ? "" : "none";
+  el("btnNext").textContent = state.cur === state.rounds.length - 1 ? "Ergebnis" : "Nächster Ort";
+  el("btnConfirm").disabled = !pin;
+  el("btnConfirm").textContent = pin ? "Bestätigen" : "Tippen, dann bestätigen";
+  if(r && r.guess && !state.done){
+    el("feedback").innerHTML = `${emojiFor(r.pts)} <b>${fmtKm(r.km)}</b> daneben – <b>${r.pts}</b> Punkte`;
+  }else if(!state.done){
+    el("feedback").textContent = "";
+  }
+}
+function renderResult(){
+  const res = el("result");
+  if(!state.done){ res.classList.remove("show"); return; }
+  res.classList.add("show");
+  el("feedback").textContent = "";
+  const t = total();
+  el("resHeadline").textContent = `${t} von 500 Punkten`;
+  el("resRounds").innerHTML = state.rounds.map(r =>
+    `<div class="rrow"><span>${emojiFor(r.pts)}</span><span>${esc(r.place[0])} <span class="d">· ${esc(r.place[1])}</span></span>`
+    + `<span class="d">${fmtKm(r.km)}</span><span class="p">${r.pts}</span></div>`).join("");
+  el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+  updateCountdown();
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state || !state.done || state.mode !== "daily"){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Neue Orte in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+function render(){
+  el("puzzleLabel").textContent = state.mode === "daily" ? `Täglich · #${state.num}` : "Übungsmodus";
+  renderDots();
+  renderPrompt();
+  renderControls();
+  renderResult();
+  drawMarks();
+}
+
+function confirmGuess(){
+  const r = state.rounds[state.cur];
+  if(!pin || r.guess || state.done) return;
+  r.guess = pin.map(v => Math.round(v * 1000) / 1000);
+  r.km = distKm(r.guess, [r.place[3], r.place[2]]);
+  r.pts = pointsFor(r.km);
+  pin = null;
+  persist();
+  render();
+  zoomTo([r.guess, [r.place[3], r.place[2]]]);
+}
+function next(){
+  if(state.cur < state.rounds.length - 1){
+    state.cur++;
+    persist();
+    render();
+    resetZoom();
+    return;
+  }
+  state.done = true;
+  if(state.mode === "daily") recordResult();
+  persist();
+  render();
+  zoomTo(state.rounds.flatMap(r => [r.guess, [r.place[3], r.place[2]]]), 4);
+  setTimeout(() => el("result").scrollIntoView({ behavior:"smooth", block:"nearest" }), 400);
+}
+el("btnConfirm").addEventListener("click", confirmGuess);
+el("btnNext").addEventListener("click", next);
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape"){ closeOverlays(); return; }
+  if(e.key === "Enter" && !document.querySelector(".overlay.show") && state && !state.done){
+    const r = state.rounds[state.cur];
+    if(!r.guess && pin) confirmGuess(); else if(r.guess) next();
+  }
+});
+
+/* ================= Statistik ================= */
+function recordResult(){
+  const s = Object.assign({ played:0, total:0, best:null, streak:0, lastNum:null }, load(K_STATS, {}));
+  if(s.lastNum === state.num) return;
+  s.streak = s.lastNum === state.num - 1 ? s.streak + 1 : 1;
+  s.lastNum = state.num;
+  s.played++;
+  s.total += total();
+  s.best = s.best === null ? total() : Math.max(s.best, total());
+  save(K_STATS, s);
+}
+function openStats(){
+  const s = Object.assign({ played:0, total:0, best:null, streak:0, lastNum:null }, load(K_STATS, {}));
+  el("sPlayed").textContent = s.played;
+  el("sAvg").textContent = s.played ? Math.round(s.total / s.played) : "–";
+  el("sBest").textContent = s.best === null ? "–" : s.best;
+  el("sStreak").textContent = s.lastNum !== null && s.lastNum >= puzzleNumber(todayKey()) - 1 ? s.streak : 0;
+  openOverlay("statsOverlay");
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily" ? `PUNKTLANDUNG #${state.num}` : "PUNKTLANDUNG (Übung)";
+  return `${title} · ${total()}/500\n${state.rounds.map(r => emojiFor(r.pts)).join("")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals & Modus ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnShare").addEventListener("click", doShare);
+function switchTo(make){ if(!places) return; state = make(); pin = null; render(); resetZoom(false); }
+el("btnMode").addEventListener("click", () => switchTo(state.mode === "daily" ? newPracticeState : newDailyState));
+el("btnNew").addEventListener("click", () => switchTo(newPracticeState));
+
+let resizeT;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if(!world) return; sizeMap(); drawMap(world); resetZoom(false); drawMarks(); }, 150);
+});
+
+/* ================= Start ================= */
+let world = null;
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+sizeMap();
+Promise.all([fetch("/geo/data/world-50m.json").then(r => r.json()), fetch("/geo/data/places.json").then(r => r.json())])
+  .then(([w, p]) => {
+    world = w; places = p;
+    drawMap(world);
+    el("loading").remove();
+    state = newDailyState();
+    render();
+    if(state.done) zoomTo(state.rounds.flatMap(r => [r.guess, [r.place[3], r.place[2]]]), 4);
+  })
+  .catch(() => { el("loading").textContent = "Karte konnte nicht geladen werden."; });
+</script>
+</body>
+</html>

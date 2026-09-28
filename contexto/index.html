@@ -375,7 +375,7 @@ const rankOf = w => cur.game.rank[wordIndex.get(w)];
 
 /* ================= Eingabe normalisieren ================= */
 function normalize(raw){
-  return raw.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return raw.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 function lookup(word){
   if(wordIndex.has(word)) return word;

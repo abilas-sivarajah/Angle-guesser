@@ -1,6 +1,6 @@
 # Tägliche Rätsel
 
-Sieben kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
+Zehn kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
 Jedes Spiel steckt in einem eigenen Ordner und ist eine einzelne HTML-Datei.
 
 | Pfad | Spiel | Kurz |
@@ -12,6 +12,9 @@ Jedes Spiel steckt in einem eigenen Ordner und ist eine einzelne HTML-Datei.
 | `/ziffern` | ZIFFERN | Zielzahl mit + − × ÷ erreichen, 3 Runden (wie Digits) |
 | `/sudoku` | SUDOKU | tägliches Sudoku, Übungsmodus in 3 Stufen |
 | `/damen` | DAMEN | eine Dame pro Zeile, Spalte und Farbregion (wie Queens) |
+| `/punktlandung` | PUNKTLANDUNG | 5 Orte auf der Weltkarte antippen, Punkte nach Entfernung (wie MapTap) |
+| `/umriss` | UMRISS | Land am Umriss erkennen, mit Entfernung und Richtung (wie Worldle) |
+| `/globus` | GLOBUS | geheimes Land finden, die Karte färbt sich heiß/kalt (wie Globle) |
 | `/angle` | ANGLE | Winkel schätzen in 4 Versuchen |
 
 Alle Tagesrätsel beginnen mit #1 am 28.09.2026 (ANGLE zählt seit 2024) und wechseln um Mitternacht
@@ -20,7 +23,7 @@ zusätzlich „Weitere Spiele“.
 
 ### Spielstand auf der Startseite
 
-Die neueren Spiele (FÜNF, VERBINDUNGEN, ZIFFERN, SUDOKU, DAMEN) melden ihren Tagesstand selbst unter
+Die neueren Spiele (alle außer ANGLE und CONTEXTO) melden ihren Tagesstand selbst unter
 dem `localStorage`-Schlüssel `raetsel.status`:
 
 ```js
@@ -98,6 +101,8 @@ favicon.svg    Logo der Startseite
 <spiel>/       je Spiel: index.html (HTML + CSS + JS) und favicon.svg
 fuenf/words.js Wortlisten für FÜNF (erzeugt)
 contexto/data/ Ranglisten für CONTEXTO (erzeugt)
+geo/data/      Karten, Länder, Umrisse und Orte für die Geo-Spiele (erzeugt)
+geo/lib/       d3 und topojson-client für die Geo-Spiele
 */tools/       Skripte, die diese Daten erzeugen
 vercel.json    Static-Hosting-Konfiguration (cleanUrls, Cache-Header)
 .vercelignore  hält die Build-Werkzeuge aus dem Deployment
@@ -197,3 +202,37 @@ die Lösung eindeutig bleibt – alles im Browser, aus dem Datum abgeleitet.
 Wie LinkedIn Queens: je eine Dame pro Zeile, Spalte und Farbregion, keine zwei berühren sich. Tagesrätsel wechseln
 zwischen 7×7, 8×8 und 9×9. Der Generator wählt eine Lösung, lässt von jeder Dame aus eine Region wachsen und verschiebt
 so lange einzelne Felder zwischen Regionen, bis es keine zweite Lösung mehr gibt.
+
+## Geo-Spiele – PUNKTLANDUNG, UMRISS, GLOBUS
+
+Alle drei teilen sich Karten- und Länderdaten unter `geo/`. Karte, Zoom und Projektion übernimmt
+[d3](https://d3js.org) (`geo/lib/d3.min.js`, ISC-Lizenz), die Karten sind TopoJSON aus
+[world-atlas](https://github.com/topojson/world-atlas) – beides auf Basis von [Natural Earth](https://www.naturalearthdata.com)
+(gemeinfrei).
+
+- **PUNKTLANDUNG** (`/punktlandung`): Fünf Orte pro Tag – Weltstadt, Hauptstadt/Großstadt, Sehenswürdigkeit,
+  Großstadt, weitere Großstadt, nie zweimal dasselbe Land. Tippen setzt einen Pin, *Bestätigen* wertet aus:
+  Punkte = 100 · e^(−Entfernung / 1.100 km), also unter 10 km fast 100, bei 1.000 km rund 40. Zoom per Pinch,
+  Mausrad oder Knöpfen. Die Karte ist die 50m-Version (ausgedünnt, ~135 KB gezippt).
+- **UMRISS** (`/umriss`): Umriss des Landes (flächentreu, auf das Land zentriert), sechs Versuche. Hinweise:
+  Entfernung und Richtung zwischen den Landesmitten (Mitte des größten Landesteils), Nähe in Prozent von 20.000 km.
+  Weit abgelegene Landesteile (mehr als 800 km vom Rest, z. B. Hawaii) fehlen im Umriss.
+- **GLOBUS** (`/globus`): Beliebig viele Tipps; gemessen wird der kürzeste Abstand zwischen den Grenzen
+  (Nachbarn = 0 km) auf der 110m-Karte. Sehr kleine Staaten sind in dieser Karte nicht enthalten.
+
+Lösungen sind nur souveräne Staaten (ohne Antarktis, abhängige Gebiete und Gebiete mit umstrittenem Status);
+raten kann man alle 176 Länder und Gebiete der Karte, auch unter gängigen Kurznamen („USA“, „Holland“,
+„Weißrussland“ …). UMRISS und GLOBUS gehen ihre 165 Lösungen in fester, gemischter Reihenfolge durch.
+
+### Daten neu erzeugen
+
+```bash
+cd geo/tools
+npm install
+npm run build
+```
+
+`build.mjs` schreibt `geo/data/` (Karten mit ISO-Codes und deutschen Namen, `countries.json` mit Suchschlüsseln,
+Landesmitten und den Lösungsreihenfolgen, `shapes.json` mit den Umrissen, `places.json` mit den Orten) und kopiert
+d3/topojson nach `geo/lib/`. Die Städte (Natural Earth „populated places“, mit deutschen Namen) lädt es beim ersten
+Lauf nach `geo/tools/.cache/`; die Sehenswürdigkeiten stehen als Liste direkt im Skript.
