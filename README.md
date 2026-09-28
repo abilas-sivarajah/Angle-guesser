@@ -1,6 +1,6 @@
 # Tägliche Rätsel
 
-Zehn kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
+Vierzehn kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
 Jedes Spiel steckt in einem eigenen Ordner und ist eine einzelne HTML-Datei.
 
 | Pfad | Spiel | Kurz |
@@ -12,9 +12,13 @@ Jedes Spiel steckt in einem eigenen Ordner und ist eine einzelne HTML-Datei.
 | `/ziffern` | ZIFFERN | Zielzahl mit + − × ÷ erreichen, 3 Runden (wie Digits) |
 | `/sudoku` | SUDOKU | tägliches Sudoku, Übungsmodus in 3 Stufen |
 | `/damen` | DAMEN | eine Dame pro Zeile, Spalte und Farbregion (wie Queens) |
+| `/tango` | TANGO | Sonnen und Monde mit =/×-Hinweisen (wie Tango) |
+| `/pfad` | PFAD | ein Weg durch alle Felder über die Zahlen (wie Zip) |
 | `/punktlandung` | PUNKTLANDUNG | 5 Orte auf der Weltkarte antippen, Punkte nach Entfernung (wie MapTap) |
 | `/umriss` | UMRISS | Land am Umriss erkennen, mit Entfernung und Richtung (wie Worldle) |
 | `/globus` | GLOBUS | geheimes Land finden, die Karte färbt sich heiß/kalt (wie Globle) |
+| `/flagge` | FLAGGE | Land an der Flagge erkennen, die Stück für Stück aufgedeckt wird |
+| `/zeitstrahl` | ZEITSTRAHL | historische Ereignisse in die richtige Reihenfolge bringen |
 | `/angle` | ANGLE | Winkel schätzen in 4 Versuchen |
 
 Alle Tagesrätsel beginnen mit #1 am 28.09.2026 (ANGLE zählt seit 2024) und wechseln um Mitternacht
@@ -203,9 +207,29 @@ Wie LinkedIn Queens: je eine Dame pro Zeile, Spalte und Farbregion, keine zwei b
 zwischen 7×7, 8×8 und 9×9. Der Generator wählt eine Lösung, lässt von jeder Dame aus eine Region wachsen und verschiebt
 so lange einzelne Felder zwischen Regionen, bis es keine zweite Lösung mehr gibt.
 
-## Geo-Spiele – PUNKTLANDUNG, UMRISS, GLOBUS
+## TANGO – `/tango`
 
-Alle drei teilen sich Karten- und Länderdaten unter `geo/`. Karte, Zoom und Projektion übernimmt
+6×6-Gitter mit Sonnen und Monden: je drei pro Zeile und Spalte, nie drei gleiche nebeneinander, `=`/`×` zwischen
+zwei Feldern heißt gleich/verschieden. Der Generator zieht eine zufällige gültige Lösung, gibt zunächst alle Felder
+plus zehn Zeichen vor und entfernt dann – erst Vorgaben, dann Zeichen – alles, was für eine eindeutige Lösung nicht
+nötig ist (im Schnitt bleiben ~4 Vorgaben und ~6 Zeichen).
+
+## PFAD – `/pfad`
+
+Wie LinkedIn Zip: ein Weg von der 1 bis zur höchsten Zahl, der die Zahlen der Reihe nach besucht und jedes Feld genau
+einmal betritt. Abwechselnd 6×6 (10 Zahlen) und 7×7 (12 Zahlen). Der Weg entsteht per „Backbite“ aus einer
+Schlangenlinie; gewertet wird jeder Weg, der die Regeln erfüllt – nicht nur der erzeugte.
+
+## ZEITSTRAHL – `/zeitstrahl`
+
+Acht Ereignisse pro Tag (alle aus verschiedenen Jahren); das erste liegt mit Jahreszahl auf dem Zeitstrahl, die übrigen
+sieben tippt man an die passende Stelle. Die 163 Ereignisse stehen als `EVENTS` direkt in `zeitstrahl/index.html`
+(`[Jahr, Text]`, negative Jahre = v. Chr., drittes Feld `"um"` für ungefähre Angaben) – neue einfach anhängen,
+möglichst mit einem Jahr, das noch nicht vorkommt.
+
+## Geo-Spiele – PUNKTLANDUNG, UMRISS, GLOBUS, FLAGGE
+
+Alle vier teilen sich Karten- und Länderdaten unter `geo/`. Karte, Zoom und Projektion übernimmt
 [d3](https://d3js.org) (`geo/lib/d3.min.js`, ISC-Lizenz), die Karten sind TopoJSON aus
 [world-atlas](https://github.com/topojson/world-atlas) – beides auf Basis von [Natural Earth](https://www.naturalearthdata.com)
 (gemeinfrei).
@@ -217,12 +241,15 @@ Alle drei teilen sich Karten- und Länderdaten unter `geo/`. Karte, Zoom und Pro
 - **UMRISS** (`/umriss`): Umriss des Landes (flächentreu, auf das Land zentriert), sechs Versuche. Hinweise:
   Entfernung und Richtung zwischen den Landesmitten (Mitte des größten Landesteils), Nähe in Prozent von 20.000 km.
   Weit abgelegene Landesteile (mehr als 800 km vom Rest, z. B. Hawaii) fehlen im Umriss.
+- **FLAGGE** (`/flagge`): Sechs Versuche; zu Beginn ist ein Sechstel der Flagge sichtbar, jeder Fehlversuch deckt ein
+  weiteres auf. Dazu Entfernung, Richtung und Nähe wie bei UMRISS. Flaggen aus [flag-icons](https://github.com/lipis/flag-icons)
+  (MIT), eine SVG-Datei je Lösung unter `geo/flags/`.
 - **GLOBUS** (`/globus`): Beliebig viele Tipps; gemessen wird der kürzeste Abstand zwischen den Grenzen
   (Nachbarn = 0 km) auf der 110m-Karte. Sehr kleine Staaten sind in dieser Karte nicht enthalten.
 
 Lösungen sind nur souveräne Staaten (ohne Antarktis, abhängige Gebiete und Gebiete mit umstrittenem Status);
 raten kann man alle 176 Länder und Gebiete der Karte, auch unter gängigen Kurznamen („USA“, „Holland“,
-„Weißrussland“ …). UMRISS und GLOBUS gehen ihre 165 Lösungen in fester, gemischter Reihenfolge durch.
+„Weißrussland“ …). UMRISS, GLOBUS und FLAGGE gehen die 165 Lösungen jeweils in eigener, fester Reihenfolge durch.
 
 ### Daten neu erzeugen
 
@@ -233,6 +260,6 @@ npm run build
 ```
 
 `build.mjs` schreibt `geo/data/` (Karten mit ISO-Codes und deutschen Namen, `countries.json` mit Suchschlüsseln,
-Landesmitten und den Lösungsreihenfolgen, `shapes.json` mit den Umrissen, `places.json` mit den Orten) und kopiert
-d3/topojson nach `geo/lib/`. Die Städte (Natural Earth „populated places“, mit deutschen Namen) lädt es beim ersten
+Landesmitten und den Lösungsreihenfolgen, `shapes.json` mit den Umrissen, `places.json` mit den Orten), die Flaggen
+nach `geo/flags/` und d3/topojson nach `geo/lib/`. Die Städte (Natural Earth „populated places“, mit deutschen Namen) lädt es beim ersten
 Lauf nach `geo/tools/.cache/`; die Sehenswürdigkeiten stehen als Liste direkt im Skript.

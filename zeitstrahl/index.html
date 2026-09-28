@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZEITSTRAHL – Ereignisse einordnen</title>
+<meta name="description" content="Ordne historische Ereignisse in die richtige Reihenfolge. Jeden Tag acht neue Karten.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/zeitstrahl/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ZEITSTRAHL – Ereignisse einordnen">
+<meta property="og:description" content="Ordne historische Ereignisse in die richtige Reihenfolge. Jeden Tag acht neue Karten.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --good:#2e7d46;
+    --bad:#a8402f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 16px 40px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:34px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:42px;height:42px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);display:flex;border-radius:8px}
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .info{margin-top:14px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:flex;gap:14px}
+  .info b{color:var(--text)}
+
+  /* ---------- current card ---------- */
+  .current{
+    width:100%;margin-top:14px;background:var(--panel);border:2px solid var(--accent);border-radius:14px;
+    padding:16px 18px;text-align:center;
+  }
+  .current .q{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .current .ev{margin-top:6px;font-size:19px;font-weight:600;line-height:1.35}
+  .current .how{margin-top:8px;font-size:13px;color:var(--muted)}
+
+  /* ---------- timeline ---------- */
+  .timeline{width:100%;margin-top:14px;display:flex;flex-direction:column;align-items:stretch;position:relative}
+  .slot{
+    align-self:center;margin:4px 0;background:none;border:1px dashed #6b6d74;color:#c9cad0;border-radius:18px;
+    padding:6px 14px;font-family:inherit;font-size:13px;cursor:pointer;transition:background .12s,border-color .12s;
+  }
+  .slot:hover{background:#e6503c22;border-color:var(--accent);color:var(--text)}
+  .card{
+    display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:center;background:var(--panel);
+    border-radius:10px;padding:10px 14px;margin:3px 0;border-left:4px solid var(--line);
+  }
+  .card .yr{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+  .card .yr small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+  .card .tx{font-size:14.5px;line-height:1.35;color:#d9d9dc}
+  .card.good{border-left-color:#4caf6e}
+  .card.bad{border-left-color:#e8735c}
+  .card.anchor{border-left-color:#6b6d74}
+  .card.new{animation:pop .35s ease-out}
+  @keyframes pop{from{transform:scale(.96);background:#34353a}to{transform:none}}
+
+  /* ---------- result ---------- */
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover{background:#3a3b40}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+  .result{margin-top:14px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px;width:100%}
+  .result.show{display:flex}
+  .result .headline{font-size:20px;font-weight:600}
+  .result .sub{font-size:22px;letter-spacing:2px}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .statnums{display:flex;justify-content:space-between;text-align:center;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;max-width:calc(100vw - 32px);text-align:center;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <path d="M9 24h30" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="15" cy="24" r="3.5" fill="#e6503c"/><circle cx="26" cy="24" r="3.5" fill="#e6503c"/><circle cx="35" cy="24" r="3.5" fill="#e6503c"/>
+      <path d="M15 17v-4M26 17v-4M35 35v-4" stroke="#e6503c" stroke-width="2.4" stroke-linecap="round"/>
+    </svg>
+    <h1>ZEITSTRAHL</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="info"><span id="puzzleLabel">Täglich</span><span>Karte <b id="cardNo">1</b>/<span id="cardTotal">7</span></span><span>Richtig: <b id="score">0</b></span></div>
+
+  <div class="current" id="current"></div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neue Karten</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Jeden Tag gibt es <strong>acht Ereignisse</strong> aus der Geschichte. Das erste liegt schon mit Jahreszahl auf dem Zeitstrahl.</p>
+    <ul>
+      <li>Oben siehst du die nächste Karte – ohne Jahreszahl.</li>
+      <li>Tippe auf die <strong>Stelle im Zeitstrahl</strong>, an die sie gehört: davor, dazwischen oder danach.</li>
+      <li>Danach wird das Jahr aufgedeckt und die Karte an die richtige Stelle gelegt – grün, wenn du richtig lagst, sonst rot.</li>
+    </ul>
+    <p>Wie viele der sieben Karten ordnest du richtig ein? Über <span style="color:var(--accent)">⇄</span> spielst du im <strong>Übungsmodus</strong> beliebig viele Runden.</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sAvg">–</span><span class="l">Ø richtig</span></div>
+      <div><span class="n" id="sPerfect">0</span><span class="l">Alle richtig</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Serie</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:16px 0 0">Nur tägliche Runden zählen. Die Serie zählt Tage in Folge, an denen du gespielt hast.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Ereignisse =================
+   [Jahr, Beschreibung] – negative Jahre = v. Chr.; ein drittes Feld „um“ markiert ungefähre Angaben.
+   Neue Ereignisse einfach hinten anhängen. */
+const EVENTS = [
+  [-2560, "Die Cheops-Pyramide in Gizeh wird fertiggestellt", "um"],
+  [-776, "Die ersten Olympischen Spiele der Antike finden statt"],
+  [-753, "Rom wird gegründet – zumindest der Sage nach"],
+  [-490, "Die Athener siegen in der Schlacht bei Marathon"],
+  [-399, "Sokrates wird in Athen zum Tode verurteilt"],
+  [-323, "Alexander der Große stirbt in Babylon"],
+  [-221, "Qin Shihuangdi einigt China und wird erster Kaiser"],
+  [-218, "Hannibal überquert mit Elefanten die Alpen"],
+  [-44, "Julius Caesar wird in Rom ermordet"],
+  [-27, "Augustus wird erster römischer Kaiser"],
+  [9, "Die Römer verlieren die Varusschlacht"],
+  [79, "Der Vesuv bricht aus und verschüttet Pompeji"],
+  [476, "Das Weströmische Reich endet"],
+  [622, "Mohammed wandert von Mekka nach Medina aus (Hidschra)"],
+  [800, "Karl der Große wird in Rom zum Kaiser gekrönt"],
+  [1054, "Die Kirche spaltet sich in Ost und West (Morgenländisches Schisma)"],
+  [1066, "Wilhelm der Eroberer siegt in der Schlacht bei Hastings"],
+  [1096, "Der Erste Kreuzzug beginnt"],
+  [1215, "Der englische König unterzeichnet die Magna Carta"],
+  [1271, "Marco Polo bricht zu seiner Reise nach China auf"],
+  [1291, "Die Schweizerische Eidgenossenschaft wird gegründet"],
+  [1347, "Die Pest („Schwarzer Tod“) erreicht Europa"],
+  [1386, "Die Universität Heidelberg wird gegründet"],
+  [1453, "Konstantinopel fällt an die Osmanen"],
+  [1492, "Kolumbus erreicht Amerika"],
+  [1498, "Vasco da Gama erreicht Indien auf dem Seeweg"],
+  [1506, "Der Grundstein für den Petersdom in Rom wird gelegt"],
+  [1512, "Michelangelo vollendet die Decke der Sixtinischen Kapelle"],
+  [1517, "Martin Luther veröffentlicht seine 95 Thesen"],
+  [1519, "Magellan bricht zur ersten Weltumseglung auf"],
+  [1521, "Hernán Cortés erobert die Aztekenhauptstadt Tenochtitlan"],
+  [1543, "Kopernikus veröffentlicht sein Werk über die Sonne im Mittelpunkt"],
+  [1564, "William Shakespeare wird geboren"],
+  [1588, "Die Spanische Armada wird geschlagen"],
+  [1600, "Die Britische Ostindien-Kompanie wird gegründet"],
+  [1610, "Galileo Galilei entdeckt die vier großen Jupitermonde"],
+  [1618, "Der Dreißigjährige Krieg beginnt"],
+  [1620, "Die „Mayflower“ landet in Nordamerika"],
+  [1636, "Die Harvard University wird gegründet"],
+  [1648, "Der Westfälische Frieden beendet den Dreißigjährigen Krieg"],
+  [1666, "Der Große Brand zerstört weite Teile Londons"],
+  [1685, "Johann Sebastian Bach wird geboren"],
+  [1687, "Isaac Newton veröffentlicht die „Principia“ mit dem Gravitationsgesetz"],
+  [1703, "Sankt Petersburg wird gegründet"],
+  [1740, "Friedrich der Große wird König von Preußen"],
+  [1752, "Benjamin Franklin lässt einen Drachen im Gewitter steigen"],
+  [1755, "Ein Erdbeben zerstört Lissabon"],
+  [1756, "Wolfgang Amadeus Mozart wird geboren"],
+  [1768, "James Cook bricht zu seiner ersten Südseereise auf"],
+  [1769, "James Watt lässt seine verbesserte Dampfmaschine patentieren"],
+  [1770, "Ludwig van Beethoven wird geboren"],
+  [1776, "Die USA erklären ihre Unabhängigkeit"],
+  [1781, "Der Planet Uranus wird entdeckt"],
+  [1783, "Die Brüder Montgolfier starten den ersten bemannten Heißluftballon"],
+  [1789, "Sturm auf die Bastille – die Französische Revolution beginnt"],
+  [1791, "Mozarts „Zauberflöte“ wird uraufgeführt"],
+  [1803, "Die USA kaufen Louisiana von Frankreich"],
+  [1804, "Napoleon krönt sich zum Kaiser der Franzosen"],
+  [1808, "Goethes „Faust. Der Tragödie erster Teil“ erscheint"],
+  [1810, "Das erste Oktoberfest wird in München gefeiert"],
+  [1812, "Die Brüder Grimm veröffentlichen ihre „Kinder- und Hausmärchen“"],
+  [1815, "Napoleon verliert die Schlacht bei Waterloo"],
+  [1825, "Die erste öffentliche Eisenbahn fährt in England (Stockton–Darlington)"],
+  [1826, "Die älteste erhaltene Fotografie entsteht", "um"],
+  [1835, "Die erste deutsche Eisenbahn fährt von Nürnberg nach Fürth"],
+  [1837, "Victoria wird Königin von Großbritannien"],
+  [1840, "Die erste Briefmarke der Welt erscheint: die „Penny Black“"],
+  [1846, "Der Planet Neptun wird entdeckt"],
+  [1848, "Das „Kommunistische Manifest“ erscheint"],
+  [1851, "In London findet die erste Weltausstellung statt"],
+  [1859, "Charles Darwin veröffentlicht „Über die Entstehung der Arten“"],
+  [1861, "Der Amerikanische Bürgerkrieg beginnt"],
+  [1863, "Das Rote Kreuz wird gegründet"],
+  [1865, "Die Sklaverei wird in den USA abgeschafft"],
+  [1867, "Die USA kaufen Alaska von Russland"],
+  [1869, "Der Suezkanal wird eröffnet"],
+  [1871, "Das Deutsche Kaiserreich wird gegründet"],
+  [1876, "Alexander Graham Bell erhält das Patent auf das Telefon"],
+  [1879, "Thomas Edison stellt seine Glühbirne vor"],
+  [1886, "Carl Benz meldet seinen Motorwagen zum Patent an"],
+  [1889, "Der Eiffelturm wird eröffnet"],
+  [1895, "Wilhelm Conrad Röntgen entdeckt die Röntgenstrahlen"],
+  [1896, "In Athen finden die ersten Olympischen Spiele der Neuzeit statt"],
+  [1900, "Der Deutsche Fußball-Bund wird gegründet"],
+  [1901, "Die Nobelpreise werden zum ersten Mal verliehen"],
+  [1903, "Den Brüdern Wright gelingt der erste Motorflug"],
+  [1905, "Albert Einstein veröffentlicht die spezielle Relativitätstheorie"],
+  [1911, "Roald Amundsen erreicht als Erster den Südpol"],
+  [1912, "Die „Titanic“ sinkt auf ihrer Jungfernfahrt"],
+  [1913, "Henry Ford führt das Fließband in der Autoproduktion ein"],
+  [1914, "Der Erste Weltkrieg beginnt"],
+  [1917, "In Russland findet die Oktoberrevolution statt"],
+  [1918, "Der Erste Weltkrieg endet"],
+  [1920, "Der Völkerbund wird gegründet"],
+  [1922, "Howard Carter entdeckt das Grab des Tutanchamun"],
+  [1923, "In Deutschland wird die erste Radiosendung ausgestrahlt"],
+  [1924, "In Chamonix finden die ersten Olympischen Winterspiele statt"],
+  [1927, "Charles Lindbergh fliegt allein nonstop über den Atlantik"],
+  [1928, "Alexander Fleming entdeckt das Penicillin"],
+  [1929, "Ein Börsencrash in New York löst die Weltwirtschaftskrise aus"],
+  [1930, "In Uruguay findet die erste Fußball-Weltmeisterschaft statt"],
+  [1936, "Die Olympischen Sommerspiele finden in Berlin statt"],
+  [1937, "Disneys „Schneewittchen“ kommt als erster abendfüllender Zeichentrickfilm ins Kino"],
+  [1939, "Der Zweite Weltkrieg beginnt"],
+  [1941, "Konrad Zuse stellt den Computer Z3 fertig"],
+  [1945, "Der Zweite Weltkrieg endet"],
+  [1947, "Indien wird unabhängig"],
+  [1948, "In Westdeutschland wird die D-Mark eingeführt"],
+  [1949, "Die Bundesrepublik Deutschland wird gegründet"],
+  [1953, "Edmund Hillary und Tenzing Norgay besteigen als Erste den Mount Everest"],
+  [1954, "„Wunder von Bern“: Deutschland wird Fußball-Weltmeister"],
+  [1957, "Mit „Sputnik 1“ umkreist der erste Satellit die Erde"],
+  [1958, "Der LEGO-Stein wird patentiert"],
+  [1959, "Die erste Barbie-Puppe kommt auf den Markt"],
+  [1961, "Juri Gagarin fliegt als erster Mensch ins All"],
+  [1962, "Die Beatles veröffentlichen ihre erste Single „Love Me Do“"],
+  [1963, "Martin Luther King hält seine Rede „I Have a Dream“"],
+  [1967, "Christiaan Barnard gelingt die erste Herztransplantation"],
+  [1969, "Mit Apollo 11 landen die ersten Menschen auf dem Mond"],
+  [1971, "Die erste E-Mail wird verschickt"],
+  [1972, "Die Olympischen Sommerspiele finden in München statt"],
+  [1973, "Wegen der Ölkrise gibt es in Deutschland autofreie Sonntage"],
+  [1974, "Ernő Rubik erfindet den Zauberwürfel"],
+  [1975, "Bill Gates und Paul Allen gründen Microsoft"],
+  [1976, "Steve Jobs und Steve Wozniak gründen Apple"],
+  [1977, "Der erste „Star Wars“-Film kommt ins Kino"],
+  [1978, "Das erste durch künstliche Befruchtung gezeugte Baby kommt zur Welt"],
+  [1979, "Sony bringt den Walkman auf den Markt"],
+  [1980, "Das Videospiel „Pac-Man“ erscheint"],
+  [1981, "Das erste Space Shuttle fliegt ins All"],
+  [1982, "Die Compact Disc (CD) kommt auf den Markt"],
+  [1984, "Alexei Paschitnow entwickelt „Tetris“"],
+  [1985, "„Super Mario Bros.“ erscheint"],
+  [1986, "Im Kernkraftwerk Tschernobyl kommt es zur Katastrophe"],
+  [1989, "Die Berliner Mauer fällt"],
+  [1990, "Deutschland wird wiedervereinigt"],
+  [1991, "Das World Wide Web wird für alle zugänglich"],
+  [1992, "Die erste SMS wird verschickt"],
+  [1993, "Der Vertrag von Maastricht tritt in Kraft – die EU entsteht"],
+  [1994, "Nelson Mandela wird Präsident Südafrikas"],
+  [1996, "Das Klonschaf Dolly wird geboren"],
+  [1997, "Der erste Harry-Potter-Band erscheint"],
+  [1998, "Larry Page und Sergey Brin gründen Google"],
+  [1999, "Der Euro wird als Buchgeld eingeführt"],
+  [2001, "Die Wikipedia geht online"],
+  [2002, "Euro-Münzen und -Scheine kommen in Umlauf"],
+  [2003, "Das Humangenomprojekt wird abgeschlossen"],
+  [2004, "Mark Zuckerberg gründet Facebook"],
+  [2005, "Angela Merkel wird Bundeskanzlerin"],
+  [2006, "„Sommermärchen“: Deutschland richtet die Fußball-WM aus"],
+  [2007, "Apple stellt das erste iPhone vor"],
+  [2008, "Das Bitcoin-Konzept wird veröffentlicht"],
+  [2009, "Barack Obama wird Präsident der USA"],
+  [2010, "Die App Instagram startet"],
+  [2011, "Im Kernkraftwerk Fukushima kommt es zur Katastrophe"],
+  [2012, "Am CERN wird das Higgs-Boson nachgewiesen"],
+  [2014, "Deutschland wird in Brasilien Fußball-Weltmeister"],
+  [2015, "Das Pariser Klimaabkommen wird beschlossen"],
+  [2016, "Großbritannien stimmt für den Austritt aus der EU"],
+  [2019, "Das erste Foto eines Schwarzen Lochs wird veröffentlicht"],
+  [2020, "Die WHO erklärt COVID-19 zur Pandemie"],
+  [2021, "Das James-Webb-Weltraumteleskop startet ins All"],
+  [2022, "ChatGPT wird veröffentlicht"],
+];
+
+/* ================= Konstanten ================= */
+const SLUG = "zeitstrahl";
+const CARDS = 8;                           // 1 Startkarte + 7 zum Einordnen
+const EPOCH = Date.UTC(2026, 8, 28);      // Runde #1
+const K_DAILY = "zeitstrahl.daily";
+const K_STATS = "zeitstrahl.stats";
+const K_HELP = "zeitstrahl.seenHelp";
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum / Zufall ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000) + 1);
+}
+function hashStr(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+// acht Ereignisse mit verschiedenen Jahren
+function pickEvents(rnd){
+  const out = [], years = new Set();
+  while(out.length < CARDS){
+    const e = EVENTS[Math.floor(rnd() * EVENTS.length)];
+    if(years.has(e[0])) continue;
+    years.add(e[0]);
+    out.push(e);
+  }
+  return out;
+}
+
+/* ================= Spielzustand ================= */
+// line: eingeordnete Karten sortiert nach Jahr, je {e:[Jahr, Text, um?], ok:true|false|null}
+let state = null;   // {mode, dateKey, num, deck:[Ereignis], line, next, results:[bool], done}
+let lastPlaced = null;
+
+function fresh(deck){
+  return { deck, line:[{ e:deck[0], ok:null }], next:1, results:[], done:false };
+}
+function newDailyState(){
+  const dateKey = todayKey();
+  const saved = load(K_DAILY, null);
+  if(saved && saved.dateKey === dateKey && saved.deck) return Object.assign(saved, { mode:"daily" });
+  return { mode:"daily", dateKey, num:puzzleNumber(dateKey), ...fresh(pickEvents(mulberry32(hashStr("zeitstrahl-" + dateKey)))) };
+}
+function newPracticeState(){
+  return { mode:"practice", ...fresh(pickEvents(Math.random)) };
+}
+const score = () => state.results.filter(Boolean).length;
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, num:state.num, deck:state.deck, line:state.line, next:state.next, results:state.results, done:state.done });
+  if(state.done) reportStatus(score() >= (CARDS - 1) / 2 ? "won" : "lost", `${score()}/${CARDS - 1} richtig`);
+  else if(state.results.length) reportStatus("playing", `Karte ${state.next}/${CARDS - 1}`);
+}
+
+/* ================= UI ================= */
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+function yearHtml(e){
+  const y = e[0];
+  const main = y < 0 ? `${-y}` : `${y}`;
+  const sub = [e[2] ? "um" : "", y < 0 ? "v. Chr." : ""].filter(Boolean).join(" · ");
+  return `${main}${sub ? `<small>${sub}</small>` : ""}`;
+}
+const yearText = e => `${e[2] ? "um " : ""}${e[0] < 0 ? `${-e[0]} v. Chr.` : e[0]}`;
+
+function toast(msg, ms = 1800){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function render(){
+  el("puzzleLabel").textContent = state.mode === "daily" ? `Täglich · #${state.num}` : "Übung";
+  el("cardTotal").textContent = CARDS - 1;
+  el("cardNo").textContent = Math.min(state.next, CARDS - 1);
+  el("score").textContent = score();
+
+  const cur = el("current");
+  if(state.done){
+    cur.style.display = "none";
+  }else{
+    cur.style.display = "";
+    cur.innerHTML = `<div class="q">Wann war das?</div><div class="ev">${esc(state.deck[state.next][1])}</div>`
+                  + `<div class="how">Tippe auf die richtige Stelle im Zeitstrahl.</div>`;
+  }
+
+  const parts = [];
+  const slot = k => state.done ? "" : `<button class="slot" data-k="${k}">${k === 0 ? "▲ früher" : k === state.line.length ? "▼ später" : "◆ hier dazwischen"}</button>`;
+  state.line.forEach((c, k) => {
+    parts.push(slot(k));
+    const cls = c.ok === null ? "anchor" : c.ok ? "good" : "bad";
+    parts.push(`<div class="card ${cls}${c === lastPlaced ? " new" : ""}"><div class="yr">${yearHtml(c.e)}</div><div class="tx">${esc(c.e[1])}</div></div>`);
+  });
+  parts.push(slot(state.line.length));
+  el("timeline").innerHTML = parts.join("");
+
+  const res = el("result");
+  res.classList.toggle("show", state.done);
+  if(state.done){
+    const s = score(), total = CARDS - 1;
+    el("resHeadline").textContent = s === total ? "Perfekt – alles richtig eingeordnet!" : `${s} von ${total} richtig`;
+    el("resSub").textContent = state.results.map(r => r ? "✅" : "❌").join("");
+    el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+    updateCountdown();
+  }
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state || !state.done || state.mode !== "daily"){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Neue Karten in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+/* ================= Einordnen ================= */
+function place(k){
+  if(state.done) return;
+  const e = state.deck[state.next];
+  const before = state.line[k - 1], after = state.line[k];
+  const ok = (!before || before.e[0] < e[0]) && (!after || e[0] < after.e[0]);
+  const card = { e, ok };
+  // an die richtige Stelle legen – bei einem Fehler also woanders als getippt
+  const pos = state.line.findIndex(c => c.e[0] > e[0]);
+  state.line.splice(pos === -1 ? state.line.length : pos, 0, card);
+  lastPlaced = card;
+  state.results.push(ok);
+  state.next++;
+  if(state.next >= CARDS){
+    state.done = true;
+    if(state.mode === "daily") recordResult();
+  }
+  persist();
+  toast(ok ? `Richtig! ${yearText(e)}` : `Leider falsch – das war ${yearText(e)}.`);
+  render();
+  const placed = el("timeline").querySelector(".card.new");
+  if(placed) placed.scrollIntoView({ behavior:"smooth", block:"center" });
+  if(state.done) setTimeout(() => el("result").scrollIntoView({ behavior:"smooth", block:"start" }), 900);
+}
+el("timeline").addEventListener("click", e => {
+  const b = e.target.closest(".slot");
+  if(b) place(Number(b.dataset.k));
+});
+
+/* ================= Statistik ================= */
+function recordResult(){
+  const s = Object.assign({ played:0, total:0, perfect:0, streak:0, lastNum:null }, load(K_STATS, {}));
+  if(s.lastNum === state.num) return;
+  s.streak = s.lastNum === state.num - 1 ? s.streak + 1 : 1;
+  s.lastNum = state.num;
+  s.played++;
+  s.total += score();
+  if(score() === CARDS - 1) s.perfect++;
+  save(K_STATS, s);
+}
+function openStats(){
+  const s = Object.assign({ played:0, total:0, perfect:0, streak:0, lastNum:null }, load(K_STATS, {}));
+  el("sPlayed").textContent = s.played;
+  el("sAvg").textContent = s.played ? (s.total / s.played).toFixed(1).replace(".", ",") : "–";
+  el("sPerfect").textContent = s.perfect;
+  el("sStreak").textContent = s.lastNum !== null && s.lastNum >= puzzleNumber(todayKey()) - 1 ? s.streak : 0;
+  openOverlay("statsOverlay");
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily" ? `ZEITSTRAHL #${state.num}` : "ZEITSTRAHL (Übung)";
+  return `${title} · ${score()}/${CARDS - 1}\n${state.results.map(r => r ? "✅" : "❌").join("")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals & Modus ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeOverlays(); });
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnShare").addEventListener("click", doShare);
+el("btnMode").addEventListener("click", () => { lastPlaced = null; state = state.mode === "daily" ? newPracticeState() : newDailyState(); render(); });
+el("btnNew").addEventListener("click", () => { lastPlaced = null; state = newPracticeState(); render(); window.scrollTo({ top:0, behavior:"smooth" }); });
+
+/* ================= Start ================= */
+state = newDailyState();
+render();
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+</script>
+</body>
+</html>
