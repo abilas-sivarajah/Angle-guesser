@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DAMEN – Logikrätsel</title>
+<meta name="description" content="Setze eine Dame in jede Zeile, Spalte und Farbregion – ohne dass sich zwei berühren. Jeden Tag ein neues Rätsel.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/damen/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DAMEN – Logikrätsel">
+<meta property="og:description" content="Setze eine Dame in jede Zeile, Spalte und Farbregion – ohne dass sich zwei berühren. Jeden Tag ein neues Rätsel.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 16px 40px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:38px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:42px;height:42px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);display:flex;border-radius:8px}
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .puzzle-label{margin-top:14px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .timer{margin-top:6px;font-size:20px;font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* ---------- board ---------- */
+  .board{
+    --n:8;--cell:min(48px,calc((100vw - 36px) / var(--n)));
+    display:grid;grid-template-columns:repeat(var(--n),var(--cell));
+    margin-top:14px;border:2px solid #111;border-radius:6px;overflow:hidden;
+    user-select:none;touch-action:none;
+  }
+  .cell{
+    width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;
+    border-right:1px solid #00000033;border-bottom:1px solid #00000033;cursor:pointer;color:#1a1a1a;
+  }
+  .cell.bt{border-top:2px solid #111} .cell.bl{border-left:2px solid #111}
+  .cell.br{border-right:2px solid #111} .cell.bb{border-bottom:2px solid #111}
+  .cell .x{font-size:calc(var(--cell) * .36);opacity:.55;font-weight:700;line-height:1}
+  .cell svg{width:62%;height:62%}
+  .cell.bad{background-image:repeating-linear-gradient(45deg,#c0392b55 0 5px,transparent 5px 10px)}
+  .cell.bad svg{color:#b3261e}
+  .board.won .cell svg{animation:pop .4s ease both}
+  @keyframes pop{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:none}}
+
+  .controls{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+  .hint{margin-top:12px;font-size:13px;color:var(--muted);text-align:center;max-width:360px;line-height:1.5}
+
+  /* ---------- result ---------- */
+  .result{margin-top:18px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px}
+  .result.show{display:flex}
+  .result .headline{font-size:20px;font-weight:600}
+  .result .sub{font-size:14px;color:var(--muted)}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <path d="M12 33l-2-15 8 7 6-11 6 11 8-7-2 15z" fill="#e6503c"/>
+      <rect x="12" y="35" width="24" height="3.5" rx="1.5" fill="#e6503c"/>
+    </svg>
+    <h1>DAMEN</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+  <div class="timer" id="timer">0:00</div>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls" id="controls">
+    <button class="btn" id="btnUndo">Rückgängig</button>
+    <button class="btn" id="btnClear">Leeren</button>
+  </div>
+  <div class="hint" id="hint">Tippe einmal für ✕, zweimal für eine Dame. Ziehen setzt mehrere ✕.</div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neues Rätsel</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Setze auf das Brett so viele <strong>Damen</strong>, wie es Zeilen hat:</p>
+    <ul>
+      <li>genau eine Dame in jeder <strong>Zeile</strong>,</li>
+      <li>genau eine in jeder <strong>Spalte</strong>,</li>
+      <li>genau eine in jeder <strong>Farbregion</strong>,</li>
+      <li>und keine zwei Damen dürfen sich <strong>berühren</strong> – auch nicht schräg.</li>
+    </ul>
+    <p>Tippe ein Feld einmal für ein <strong>✕</strong> (hier kann keine Dame stehen) und noch einmal für eine <strong>Dame</strong>. Mit gedrückter Maus oder dem Finger kannst du über mehrere Felder ziehen, um sie mit ✕ zu markieren. Konflikte werden rot schraffiert.</p>
+    <p>Jedes Rätsel hat genau eine Lösung – raten ist nie nötig. Jeden Tag gibt es ein neues, über <span style="color:var(--accent)">⇄</span> beliebig viele zum Üben.</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gelöst</span></div>
+      <div><span class="n" id="sBest">–</span><span class="l">Bestzeit</span></div>
+      <div><span class="n" id="sAvg">–</span><span class="l">Ø Zeit</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Serie</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:16px 0 0">Nur tägliche Rätsel zählen. Die Zeit läuft nur, solange die Seite offen ist.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const SLUG = "damen";
+const EPOCH = Date.UTC(2026, 8, 28);      // Rätsel #1
+const K_DAILY = "damen.daily";
+const K_STATS = "damen.stats";
+const K_HELP = "damen.seenHelp";
+const SIZES = [7, 8, 9];                   // Tagesrätsel wechseln reihum
+const COLORS = ["#f2a65a", "#8ecae6", "#b5e48c", "#f4a3c0", "#cdb4db", "#ffd166", "#9fd3c7", "#e5989b", "#bde0fe", "#d4a373"];
+const CROWN = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18L2.5 7.5l5 4L12 4l4.5 7.5 5-4L20 18H4zm0 2h16v2H4v-2z"/></svg>`;
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum / Zufall ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return Math.max(1, Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86400000) + 1);
+}
+function hashStr(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffle(a, rnd){
+  for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* ================= Generator =================
+   1. Lösung wählen: eine Dame pro Zeile und Spalte, keine berühren sich.
+   2. Von jeder Dame aus eine Farbregion wachsen lassen.
+   3. Solange es eine zweite Lösung gibt, ein Feld dieser Lösung einer Nachbarregion zuschlagen. */
+const neighbours4 = (n, r, c) => [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].filter(([y, x]) => y >= 0 && y < n && x >= 0 && x < n);
+
+function placeQueens(n, rnd){
+  const cols = [], used = new Set();
+  (function rec(r){
+    if(r === n) return true;
+    for(const c of shuffle([...Array(n).keys()], rnd)){
+      if(used.has(c) || (r > 0 && Math.abs(cols[r - 1] - c) < 2)) continue;
+      cols[r] = c; used.add(c);
+      if(rec(r + 1)) return true;
+      used.delete(c);
+    }
+    return false;
+  })(0);
+  return cols;
+}
+function growRegions(n, cols, rnd){
+  const reg = Array(n * n).fill(-1), size = Array(n).fill(1);
+  cols.forEach((c, r) => reg[r * n + c] = r);
+  let left = n * n - n;
+  while(left > 0){
+    const i = Math.floor(rnd() * n * n);
+    if(reg[i] !== -1) continue;
+    const gs = neighbours4(n, Math.floor(i / n), i % n).map(([y, x]) => reg[y * n + x]).filter(g => g !== -1);
+    if(!gs.length) continue;
+    // meist die kleinste angrenzende Region, damit die Größen nicht zu ungleich werden
+    const g = rnd() < 0.6 ? gs.reduce((a, b) => size[b] < size[a] ? b : a) : gs[Math.floor(rnd() * gs.length)];
+    reg[i] = g; size[g]++; left--;
+  }
+  return reg;
+}
+function findOther(n, reg, cols){
+  const colUsed = Array(n).fill(false), regUsed = Array(n).fill(false), pos = [];
+  let out = null;
+  (function rec(r){
+    if(r === n){
+      if(pos.some((c, i) => c !== cols[i])){ out = pos.slice(); return true; }
+      return false;
+    }
+    for(let c = 0; c < n; c++){
+      const g = reg[r * n + c];
+      if(colUsed[c] || regUsed[g] || (r > 0 && Math.abs(pos[r - 1] - c) < 2)) continue;
+      colUsed[c] = regUsed[g] = true; pos[r] = c;
+      if(rec(r + 1)) return true;
+      colUsed[c] = regUsed[g] = false;
+    }
+    return false;
+  })(0);
+  return out;
+}
+function connectedWithout(n, reg, g, skip){
+  const cells = [];
+  for(let i = 0; i < n * n; i++) if(reg[i] === g && i !== skip) cells.push(i);
+  if(!cells.length) return false;
+  const seen = new Set([cells[0]]), stack = [cells[0]];
+  while(stack.length){
+    const i = stack.pop();
+    for(const [y, x] of neighbours4(n, Math.floor(i / n), i % n)){
+      const j = y * n + x;
+      if(j !== skip && reg[j] === g && !seen.has(j)){ seen.add(j); stack.push(j); }
+    }
+  }
+  return seen.size === cells.length;
+}
+function makePuzzle(n, seed){
+  const rnd = mulberry32(seed);
+  for(;;){
+    const cols = placeQueens(n, rnd);
+    const reg = growRegions(n, cols, rnd);
+    const queenCell = new Set(cols.map((c, r) => r * n + c));
+    for(let step = 0; step < n * n * 2; step++){
+      const other = findOther(n, reg, cols);
+      if(!other) return { n, reg, solution:cols };
+      const moves = [];
+      other.forEach((c, r) => {
+        const i = r * n + c;
+        if(c === cols[r] || queenCell.has(i)) return;
+        for(const [y, x] of neighbours4(n, r, c)){
+          const g = reg[y * n + x];
+          if(g !== reg[i]) moves.push([i, g]);
+        }
+      });
+      const move = shuffle(moves, rnd).find(([i]) => connectedWithout(n, reg, reg[i], i));
+      if(!move) break;
+      reg[move[0]] = move[1];
+    }
+  }
+}
+
+/* ================= Spielzustand ================= */
+// marks: 0 leer, 1 ✕, 2 Dame
+let state = null;   // {mode, dateKey, num, n, reg, marks, history, elapsed, done}
+
+function newDailyState(){
+  const dateKey = todayKey();
+  const num = puzzleNumber(dateKey);
+  const n = SIZES[(num - 1) % SIZES.length];
+  const p = makePuzzle(n, hashStr("damen-" + dateKey));
+  const base = { mode:"daily", dateKey, num, n, reg:p.reg, marks:Array(n * n).fill(0), history:[], elapsed:0, done:false };
+  const saved = load(K_DAILY, null);
+  if(saved && saved.dateKey === dateKey && saved.marks && saved.marks.length === n * n){
+    Object.assign(base, { marks:saved.marks, elapsed:saved.elapsed || 0, done:!!saved.done });
+  }
+  return base;
+}
+function newPracticeState(){
+  const n = SIZES[Math.floor(Math.random() * SIZES.length)];
+  const p = makePuzzle(n, (Math.random() * 4294967296) >>> 0);
+  return { mode:"practice", n, reg:p.reg, marks:Array(n * n).fill(0), history:[], elapsed:0, done:false };
+}
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, marks:state.marks, elapsed:state.elapsed, done:state.done });
+  if(state.done) reportStatus("won", `Gelöst in ${fmt(state.elapsed)}`);
+  else if(state.marks.some(m => m)) reportStatus("playing", `${state.marks.filter(m => m === 2).length}/${state.n} Damen`);
+}
+
+/* ================= Regeln ================= */
+function conflicts(){
+  const { n, reg, marks } = state;
+  const queens = [];
+  marks.forEach((m, i) => { if(m === 2) queens.push(i); });
+  const bad = new Set();
+  for(let a = 0; a < queens.length; a++) for(let b = a + 1; b < queens.length; b++){
+    const i = queens[a], j = queens[b];
+    const ri = Math.floor(i / n), ci = i % n, rj = Math.floor(j / n), cj = j % n;
+    if(ri === rj || ci === cj || reg[i] === reg[j] || (Math.abs(ri - rj) <= 1 && Math.abs(ci - cj) <= 1)){ bad.add(i); bad.add(j); }
+  }
+  return { queens, bad };
+}
+function isSolved(){
+  const { queens, bad } = conflicts();
+  return queens.length === state.n && bad.size === 0;
+}
+
+/* ================= UI ================= */
+const el = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+function toast(msg, ms = 1600){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function buildBoard(){
+  const { n, reg } = state;
+  const b = el("board");
+  b.style.setProperty("--n", n);
+  let html = "";
+  for(let i = 0; i < n * n; i++){
+    const r = Math.floor(i / n), c = i % n, g = reg[i];
+    const cls = ["cell"];
+    if(r > 0 && reg[i - n] !== g) cls.push("bt");
+    if(c > 0 && reg[i - 1] !== g) cls.push("bl");
+    if(c < n - 1 && reg[i + 1] !== g) cls.push("br");
+    if(r < n - 1 && reg[i + n] !== g) cls.push("bb");
+    html += `<div class="${cls.join(" ")}" data-i="${i}" style="background-color:${COLORS[g % COLORS.length]}"></div>`;
+  }
+  b.innerHTML = html;
+}
+function renderMarks(){
+  const { bad } = conflicts();
+  document.querySelectorAll("#board .cell").forEach(cell => {
+    const i = Number(cell.dataset.i), m = state.marks[i];
+    cell.innerHTML = m === 2 ? CROWN : m === 1 ? `<span class="x">✕</span>` : "";
+    cell.classList.toggle("bad", bad.has(i));
+  });
+  el("board").classList.toggle("won", state.done);
+}
+function renderTimer(){ el("timer").textContent = fmt(state.elapsed); }
+function renderResult(){
+  const res = el("result");
+  el("controls").style.display = state.done ? "none" : "";
+  el("hint").style.display = state.done ? "none" : "";
+  if(!state.done){ res.classList.remove("show"); return; }
+  res.classList.add("show");
+  el("resHeadline").textContent = "👑 Gelöst!";
+  el("resSub").textContent = `${state.n}×${state.n} in ${fmt(state.elapsed)}`;
+  el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+  updateCountdown();
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state || !state.done || state.mode !== "daily"){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Nächstes Rätsel in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+function render(){
+  el("puzzleLabel").textContent = state.mode === "daily" ? `Täglich · #${state.num} · ${state.n}×${state.n}` : `Übung · ${state.n}×${state.n}`;
+  buildBoard();
+  renderMarks();
+  renderTimer();
+  renderResult();
+}
+
+// Zeit läuft nur, solange die Seite sichtbar ist und schon gespielt wurde
+setInterval(() => {
+  updateCountdown();
+  if(!state || state.done || document.hidden || !state.marks.some(m => m)) return;
+  state.elapsed++;
+  renderTimer();
+  if(state.elapsed % 5 === 0) persist();
+}, 1000);
+
+/* ================= Eingabe ================= */
+function setMark(i, m, record = true){
+  if(state.marks[i] === m) return false;
+  if(record) state.history.push(state.marks.slice());
+  state.marks[i] = m;
+  return true;
+}
+function afterChange(){
+  if(isSolved()){
+    state.done = true;
+    if(state.mode === "daily") recordResult();
+    persist();
+    renderMarks();
+    renderResult();
+    setTimeout(() => el("result").scrollIntoView({ behavior:"smooth", block:"nearest" }), 300);
+    return;
+  }
+  persist();
+  renderMarks();
+}
+
+// Tippen: leer → ✕ → Dame → leer. Ziehen über leere Felder setzt ✕.
+let drag = null;   // {start, moved, snapshot}
+const cellAt = (x, y) => { const c = document.elementFromPoint(x, y); return c && c.closest("#board .cell"); };
+
+el("board").addEventListener("pointerdown", e => {
+  if(state.done) return;
+  const cell = e.target.closest(".cell");
+  if(!cell) return;
+  e.preventDefault();
+  drag = { start:Number(cell.dataset.i), moved:false, snapshot:state.marks.slice() };
+});
+window.addEventListener("pointermove", e => {
+  if(!drag || state.done) return;
+  const cell = cellAt(e.clientX, e.clientY);
+  if(!cell) return;
+  const i = Number(cell.dataset.i);
+  if(i === drag.start && !drag.moved) return;
+  if(!drag.moved){
+    drag.moved = true;
+    if(state.marks[drag.start] === 0) state.marks[drag.start] = 1;
+  }
+  if(state.marks[i] === 0){ state.marks[i] = 1; renderMarks(); }
+});
+window.addEventListener("pointerup", () => {
+  if(!drag) return;
+  const d = drag;
+  drag = null;
+  if(state.done) return;
+  if(d.moved){
+    state.history.push(d.snapshot);
+    afterChange();
+    return;
+  }
+  const i = d.start;
+  setMark(i, (state.marks[i] + 1) % 3);
+  afterChange();
+});
+
+function undo(){
+  if(state.done || !state.history.length) return;
+  state.marks = state.history.pop();
+  persist();
+  renderMarks();
+}
+function clearAll(){
+  if(state.done || !state.marks.some(m => m)) return;
+  state.history.push(state.marks.slice());
+  state.marks.fill(0);
+  persist();
+  renderMarks();
+}
+
+/* ================= Statistik ================= */
+function recordResult(){
+  const s = Object.assign({ solved:0, total:0, best:null, streak:0, lastNum:null }, load(K_STATS, {}));
+  if(s.lastNum === state.num) return;
+  s.streak = s.lastNum === state.num - 1 ? s.streak + 1 : 1;
+  s.lastNum = state.num;
+  s.solved++;
+  s.total += state.elapsed;
+  s.best = s.best === null ? state.elapsed : Math.min(s.best, state.elapsed);
+  save(K_STATS, s);
+}
+function openStats(){
+  const s = Object.assign({ solved:0, total:0, best:null, streak:0, lastNum:null }, load(K_STATS, {}));
+  el("sPlayed").textContent = s.solved;
+  el("sBest").textContent = s.best === null ? "–" : fmt(s.best);
+  el("sAvg").textContent = s.solved ? fmt(Math.round(s.total / s.solved)) : "–";
+  el("sStreak").textContent = s.lastNum !== null && s.lastNum >= puzzleNumber(todayKey()) - 1 ? s.streak : 0;
+  openOverlay("statsOverlay");
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily" ? `DAMEN #${state.num}` : "DAMEN (Übung)";
+  return `${title} · ${state.n}×${state.n}\n👑 gelöst in ${fmt(state.elapsed)}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals & Events ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeOverlays();
+  if((e.ctrlKey || e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
+});
+
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnUndo").addEventListener("click", undo);
+el("btnClear").addEventListener("click", clearAll);
+el("btnShare").addEventListener("click", doShare);
+el("btnMode").addEventListener("click", () => { state = state.mode === "daily" ? newPracticeState() : newDailyState(); render(); });
+el("btnNew").addEventListener("click", () => { state = newPracticeState(); render(); });
+
+/* ================= Start ================= */
+state = newDailyState();
+render();
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+</script>
+</body>
+</html>

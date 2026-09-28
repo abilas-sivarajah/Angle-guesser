@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERBINDUNGEN – vier Gruppen finden</title>
+<meta name="description" content="Sortiere 16 Begriffe in vier geheime Gruppen. Jeden Tag ein neues Rätsel.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/verbindungen/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="VERBINDUNGEN – vier Gruppen finden">
+<meta property="og:description" content="Sortiere 16 Begriffe in vier geheime Gruppen. Jeden Tag ein neues Rätsel.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --g0:#e3c567;
+    --g1:#7fb069;
+    --g2:#78a6d6;
+    --g3:#b28dc9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:560px;padding:18px 12px 40px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{margin:0;font-size:30px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
+  .logo{width:40px;height:40px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);display:flex;border-radius:8px}
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+  .puzzle-label{margin-top:14px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .intro{margin:10px 0 12px;font-size:15px;color:#d2d2d6;text-align:center}
+
+  /* ---------- grid ---------- */
+  .grid{width:100%;display:flex;flex-direction:column;gap:7px}
+  .cells{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .cell{
+    height:68px;border:0;border-radius:8px;background:var(--panel-2);color:var(--text);
+    font-family:inherit;font-weight:700;text-transform:uppercase;cursor:pointer;
+    padding:4px 5px;line-height:1.15;overflow-wrap:anywhere;hyphens:manual;
+    transition:background .12s,transform .12s;user-select:none;
+  }
+  .cell:hover{background:#34353a}
+  .cell.sel{background:#e9e9ea;color:#111}
+  .cell.jump{animation:jump .35s ease}
+  @keyframes jump{40%{transform:translateY(-8px)}}
+  .cells.shake{animation:shake .4s}
+  @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+  .group{
+    border-radius:8px;min-height:68px;padding:8px 10px;text-align:center;color:#141414;
+    display:flex;flex-direction:column;justify-content:center;animation:pop .3s ease-out;
+  }
+  @keyframes pop{from{transform:scale(.94);opacity:.4}to{transform:none;opacity:1}}
+  .group .gname{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.03em}
+  .group .gwords{font-size:14px;margin-top:3px;text-transform:uppercase}
+  .g0{background:var(--g0)} .g1{background:var(--g1)} .g2{background:var(--g2)} .g3{background:var(--g3)}
+
+  /* ---------- controls ---------- */
+  .mistakes{margin-top:16px;font-size:14px;color:#d2d2d6;display:flex;align-items:center;gap:8px}
+  .dots{display:flex;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;background:#6b6d74;transition:opacity .2s,transform .2s}
+  .dot.used{opacity:0;transform:scale(.3)}
+  .controls{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:22px;padding:11px 18px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+
+  /* ---------- result ---------- */
+  .result{margin-top:18px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px}
+  .result.show{display:flex}
+  .result .headline{font-size:19px;font-weight:600}
+  .result .sub{font-size:14px;color:var(--muted)}
+  .result .grid-emoji{font-size:20px;line-height:1.25;letter-spacing:2px}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:#000000b8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:440px;padding:22px;max-height:86vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+  .games{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+  .games button{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:8px 4px;font-family:inherit;font-size:14px;cursor:pointer;line-height:1.3;
+  }
+  .games button:hover{background:#3a3b40}
+  .games button.cur{border-color:var(--accent)}
+  .games small{display:block;font-size:11px;color:var(--muted)}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:26px;font-weight:600}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <rect x="10" y="10" width="12" height="12" rx="2" fill="#e6503c"/>
+      <rect x="26" y="10" width="12" height="12" rx="2" fill="#e6503c"/>
+      <rect x="10" y="26" width="12" height="12" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+      <rect x="26" y="26" width="12" height="12" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+    </svg>
+    <h1>VERBINDUNGEN</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnArchive" title="Frühere Rätsel" aria-label="Frühere Rätsel">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm-2 8h14v10H5V10zm2 2v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v2h2v-2h-2zm-8 4v2h2v-2H7zm4 0v2h2v-2h-2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+  <div class="intro">Finde vier Gruppen mit je vier Begriffen.</div>
+
+  <div class="grid">
+    <div id="solved" class="grid"></div>
+    <div class="cells" id="cells"></div>
+  </div>
+
+  <div class="mistakes" id="mistakesRow">Fehler übrig: <span class="dots" id="dots"></span></div>
+
+  <div class="controls" id="controls">
+    <button class="btn" id="btnShuffle">Mischen</button>
+    <button class="btn" id="btnClear" disabled>Auswahl aufheben</button>
+    <button class="btn primary" id="btnSubmit" disabled>Prüfen</button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="grid-emoji" id="resGrid"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Die 16 Begriffe bilden <strong>vier Gruppen zu je vier</strong>, die etwas gemeinsam haben. Wähle vier Begriffe aus und tippe auf <strong>Prüfen</strong>.</p>
+    <p>Du darfst dich <strong>viermal irren</strong>. Liegst du mit drei von vier richtig, sagen wir es dir.</p>
+    <p>Vorsicht: Manche Begriffe scheinen in mehrere Gruppen zu passen – aber nur eine Aufteilung geht ganz auf.</p>
+    <ul>
+      <li><span class="swatch g0"></span>leicht</li>
+      <li><span class="swatch g1"></span>mittel</li>
+      <li><span class="swatch g2"></span>knifflig</li>
+      <li><span class="swatch g3"></span>um die Ecke gedacht – z. B. <em>„___ball“</em>: Fuß, Hand, Feder, Schnee</li>
+    </ul>
+    <p>Jeden Tag gibt es ein neues Rätsel. Frühere Rätsel findest du im Kalender.</p>
+  </div>
+</div>
+
+<!-- Archive -->
+<div class="overlay" id="archiveOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Frühere Rätsel</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="games" id="games"></div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sWin">0</span><span class="l">Gelöst&nbsp;%</span></div>
+      <div><span class="n" id="sPerfect">0</span><span class="l">Ohne Fehler</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Aktuelle Serie</span></div>
+      <div><span class="n" id="sMax">0</span><span class="l">Beste Serie</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:16px 0 0">Serien zählen Tagesrätsel, die am selben Tag gelöst wurden.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Rätsel =================
+   Je Rätsel vier Gruppen, von leicht (0) bis um die Ecke gedacht (3):
+   [Name, Begriff, Begriff, Begriff, Begriff]. Rätsel n = PUZZLES[(n - 1) % Anzahl].
+   "|" markiert, wo ein langer Begriff im Feld umbrechen darf. */
+const PUZZLES = [
+  [["Obst","Apfel","Birne","Pflaume","Kirsche"],["Schachfiguren","König","Turm","Läufer","Springer"],["___ball","Fuß","Hand","Feder","Schnee"],["Enthalten eine Zahl","Zweifel","Achtung","dreist","Elfen|bein"]],
+  [["Musikinstrumente","Geige","Flöte","Trommel","Harfe"],["Deutsche Flüsse","Rhein","Elbe","Donau","Weser"],["Kaffeespezialitäten","Espresso","Latte","Mokka","Cappu|ccino"],["Rückwärts ein anderes Wort","Regal","Nebel","Tor","lieb"]],
+  [["Körperteile","Hals","Bein","Kopf","Nase"],["Haben Zähne","Kamm","Säge","Zahnrad","Reiß|verschluss"],["Märchenfiguren","Rapunzel","Rumpel|stilzchen","Rot|käppchen","Schnee|wittchen"],["___stuhl","Kinder","Schaukel","Liege","Büro"]],
+  [["Haustiere","Hund","Katze","Hamster","Wellen|sittich"],["Spielkartenfarben","Herz","Karo","Pik","Kreuz"],["Brettspiele","Schach","Dame","Mühle","Halma"],["Enthalten ein Körperteil","Armee","beinahe","Handel","Mundart"]],
+  [["Gemüse","Karotte","Gurke","Paprika","Zwiebel"],["Hauptstädte","Berlin","Wien","Bern","Rom"],["Automarken","Opel","Audi","Fiat","Seat"],["Palindrome","Otto","Anna","Rentner","Uhu"]],
+  [["Bäume","Eiche","Buche","Tanne","Birke"],["Sport mit Schläger","Tennis","Golf","Bad|minton","Hockey"],["Waldtiere","Fuchs","Hirsch","Dachs","Wild|schwein"],["Ohne ersten Buchstaben ein neues Wort","Traum","Kleid","Platz","Grund"]],
+  [["Möbel","Tisch","Stuhl","Schrank","Sofa"],["Wetter","Hagel","Nebel","Gewit|ter","Sturm"],["Nudelsorten","Penne","Spa|ghetti","Fusilli","Farfalle"],["___bogen","Regen","Frage","Tor","Kreis"]],
+  [["Getränke","Wasser","Saft","Milch","Tee"],["Käsesorten","Gouda","Brie","Feta","Edamer"],["Tänze","Walzer","Tango","Samba","Salsa"],["Haben Blätter","Buch","Baum","Block","Kalen|der"]],
+  [["Werkzeuge","Zange","Bohrer","Feile","Schrauben|zieher"],["Vögel","Amsel","Meise","Spatz","Rabe"],["Sternzeichen","Widder","Stier","Löwe","Waage"],["___hai","Hammer","Tiger","Wal","Blau"]],
+  [["Kleidung","Hose","Jacke","Hemd","Mütze"],["Planeten","Mars","Venus","Merkur","Saturn"],["Griechische Götter","Zeus","Apollo","Athene","Hermes"],["___stern","Morgen","See","Abend","Glück"]],
+  [["Monate","Mai","Juni","Juli","März"],["Männernamen","Peter","Klaus","Franz","August"],["Städte","Köln","Bonn","Trier","Ulm"],["Doppelter Vokal","Boot","Meer","Saal","Tee"]],
+  [["Schulfächer","Mathe","Deutsch","Biologie","Sport"],["Gewürze","Pfeffer","Salz","Zimt","Curry"],["Tasteninstrumente","Klavier","Orgel","Akkor|deon","Keyboard"],["Versteckte Tiere","hundert","Affekt","schwanger","lauschen"]],
+  [["Edelsteine","Rubin","Smaragd","Saphir","Opal"],["Metalle","Gold","Kupfer","Eisen","Zinn"],["Schreibgeräte","Kuli","Füller","Kreide","Marker"],["___stück","früh","Kunst","Beweis","Grund"]],
+  [["Farben","Rot","Gelb","Lila","Orange"],["Früchte","Banane","Zitrone","Mango","Kiwi"],["Vögel","Storch","Adler","Eule","Taube"],["Beginnen mit einem Getränk","weinen","Teenager","Sektor","Ginster"]],
+  [["Gartengeräte","Spaten","Harke","Rechen","Schaufel"],["Berufe","Bäcker","Lehrer","Arzt","Friseur"],["Gewässer","Bach","See","Teich","Tümpel"],["Komponisten","Beet|hoven","Mozart","Händel","Wagner"]],
+  [["Süßigkeiten","Schoko|lade","Bonbon","Lutscher","Gummibär"],["Schwarz-weiß","Zebra","Panda","Pinguin","Dalma|tiner"],["Geometrische Formen","Kreis","Dreieck","Quadrat","Raute"],["Im Zirkus","Clown","Manege","Zelt","Trapez"]],
+  [["Fahrzeuge","Auto","Bus","Zug","Fahrrad"],["Fahrradteile","Sattel","Lenker","Pedal","Speiche"],["Schmuck","Ring","Armband","Brosche","Kette"],["___hof","Bahn","Gast","Hinter","Schlacht"]],
+  [["Jahreszeiten","Frühling","Sommer","Herbst","Winter"],["Himmelskörper","Sonne","Mond","Stern","Komet"],["Wintersport","Rodeln","Ski|springen","Eishockey","Biathlon"],["___schein","Führer","Gut","Heiligen","Augen"]],
+  [["Küchengeräte","Toaster","Mixer","Herd","Kühl|schrank"],["Brot & Gebäck","Brezel","Baguette","Ciabatta","Pumper|nickel"],["Kartenspiele","Skat","Poker","Doppel|kopf","Bridge"],["___fest","Oktober","Wein","Sommer","Ernte"]],
+  [["Insekten","Biene","Ameise","Mücke","Wespe"],["Trägt man um den Hals","Krawatte","Fliege","Schal","Kette"],["Musikrichtungen","Rock","Pop","Jazz","Blues"],["Gebäck","Bienen|stich","Muffin","Ameri|kaner","Brownie"]],
+  [["Blumen","Rose","Tulpe","Lilie","Nelke"],["Gewürze","Zimt","Anis","Safran","Muskat"],["Cocktails","Mojito","Caipi|rinha","Daiquiri","Margarita"],["Enthalten eine Farbe","grausam","Rotor","Gründung","Braun|schweig"]],
+  [["Im Gesicht","Auge","Nase","Mund","Ohr"],["Kindergeburtstag","Topf|schlagen","Sack|hüpfen","Eierlauf","Stopptanz"],["Fußball","Abseits","Ecke","Elf|meter","Foul"],["Haben Augen","Würfel","Kar|toffel","Pfau","Hurrikan"]],
+  [["Wochentage","Montag","Mittwoch","Freitag","Sonntag"],["Feste im Jahr","Ostern","Pfing|sten","Weih|nachten","Silves|ter"],["Sternbilder","Orion","Pegasus","Kassio|peia","Drache"],["Beginnen mit einem Pronomen","Erdbeere","Sieger","Wirbel","Dusche"]],
+  [["Bauernhoftiere","Kuh","Schwein","Huhn","Ziege"],["Milchprodukte","Joghurt","Quark","Sahne","Butter"],["Physikalische Einheiten","Volt","Ohm","Joule","Ampere"],["An der Nordseeküste","Watt","Deich","Düne","Hallig"]],
+  [["Musikinstrumente","Gitarre","Trompete","Cello","Block|flöte"],["Superhelden","Superman","Batman","Spider|man","Hulk"],["Deutsche Automarken","Porsche","Mercedes","Audi","Opel"],["___fisch","Gold","Schwert","Stock","Kugel"]],
+  [["Getreide","Roggen","Hafer","Gerste","Weizen"],["Männliche Tiere","Hengst","Kater","Eber","Bock"],["Biersorten","Pils","Kölsch","Alt","Export"],["Scheinanglizismen","Handy","Beamer","Oldtimer","Smoking"]],
+  [["Im Badezimmer","Spiegel","Dusche","Bade|wanne","Wasch|becken"],["Zeitungen & Magazine","Stern","Bild","Zeit","Focus"],["___uhr","Sand","Armband","Turm","Stopp"],["Enthalten einen Fluss","emsig","Mainz","modern","innen"]],
+  [["Gemüse","Spinat","Brokkoli","Lauch","Sellerie"],["Sportler","Ringer","Läufer","Schwim|mer","Turner"],["Hunderassen","Pudel","Dackel","Mops","Boxer"],["Figuren bei Asterix","Asterix","Obelix","Miraculix","Idefix"]],
+  [["Beeren","Erdbeere","Himbeere","Brombeere","Heidel|beere"],["Hauptstädte","Madrid","Lissabon","Prag","Oslo"],["Helden der griechischen Sage","Achilles","Herkules","Odysseus","Paris"],["___schmerzen","Kopf","Zahn","Bauch","Rücken"]],
+  [["Kleidung","Socke","Pullover","Mantel","Schal"],["Karneval","Helau","Alaaf","Kamelle","Rosen|montag"],["Straßenverkehr","Ampel","Zebra|streifen","Kreisel","Tunnel"],["Teile eines Hemdes","Kragen","Ärmel","Knopf","Man|schette"]],
+];
+
+/* ================= Konstanten ================= */
+const SLUG = "verbindungen";
+const MAX_MISTAKES = 4;
+const EPOCH = Date.UTC(2026, 8, 28);      // Rätsel #1
+const K_GAMES = "verbindungen.games";
+const K_HELP = "verbindungen.seenHelp";
+const EMOJI = ["🟨", "🟩", "🟦", "🟪"];
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+// Spielstand für die Startseite: {dateKey, state: playing|won|lost, text}
+function reportStatus(state, text){
+  const all = load("raetsel.status", {});
+  all[SLUG] = { dateKey: todayKey(), state, text };
+  save("raetsel.status", all);
+}
+
+/* ================= Datum / Zufall ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function todayNumber(){
+  const d = new Date();
+  return Math.max(1, Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000) + 1);
+}
+function dateOf(num){
+  const d = new Date(EPOCH + (num - 1) * 86400000);
+  return d.toLocaleDateString("de-DE", { day:"numeric", month:"short", timeZone:"UTC" });
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffle(arr, rnd = Math.random){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(rnd() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* ================= Spielzustand ================= */
+// gespeichert pro Nummer: {solved:[gruppe], guesses:[[wort x4]], mistakes, done, won, day}
+let saved = load(K_GAMES, {});
+let cur = null;   // {num, groups:[{name, words, level}], order:[wort], sel:Set, st}
+
+function groupOf(word){ return cur.groups.findIndex(g => g.words.includes(word)); }
+let segments = {};   // Begriff -> Teile, an denen er umbrechen darf
+
+function openGame(num){
+  const raw = PUZZLES[(num - 1) % PUZZLES.length];
+  segments = {};
+  const groups = raw.map(([name, ...parts], level) => {
+    const words = parts.map(p => { const w = p.replace(/\|/g, ""); segments[w] = p.split("|"); return w; });
+    return { name, words, level };
+  });
+  const st = saved[num] || { solved:[], guesses:[], mistakes:0, done:false, won:false };
+  const all = groups.flatMap(g => g.words);
+  const order = shuffle(all.slice(), mulberry32(num * 7919 + 17));
+  cur = { num, groups, order, sel:new Set(), st };
+  render();
+}
+function persist(){
+  saved[cur.num] = cur.st;
+  save(K_GAMES, saved);
+  if(cur.num !== todayNumber()) return;
+  const st = cur.st;
+  if(st.done) reportStatus(st.won ? "won" : "lost", st.won ? `Gelöst · ${st.mistakes ? st.mistakes + " Fehler" : "ohne Fehler"}` : "Nicht geschafft");
+  else if(st.guesses.length) reportStatus("playing", `${st.solved.length}/4 Gruppen`);
+}
+
+/* ================= UI ================= */
+const el = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+function toast(msg, ms = 1600){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+// Schrift so wählen, dass das längste Teilstück eines Begriffs in eine Zeile passt
+const measure = document.createElement("canvas").getContext("2d");
+function fitCells(){
+  document.querySelectorAll(".cell").forEach(c => {
+    const avail = c.clientWidth - 12;
+    measure.font = `700 16px ${getComputedStyle(c).fontFamily}`;
+    const widest = Math.max(...segments[c.dataset.w].map(s => measure.measureText(s.toUpperCase()).width));
+    c.style.fontSize = Math.max(9, Math.min(16, 16 * avail / widest)).toFixed(1) + "px";
+  });
+}
+window.addEventListener("resize", fitCells);
+
+function renderSolved(){
+  // gelöste Gruppen in der Reihenfolge, in der sie gefunden wurden; am Ende auch die übrigen
+  const shown = cur.st.solved.slice();
+  if(cur.st.done) cur.groups.forEach((g, i) => { if(!shown.includes(i)) shown.push(i); });
+  el("solved").innerHTML = shown.map(i => {
+    const g = cur.groups[i];
+    return `<div class="group g${g.level}"><div class="gname">${esc(g.name)}</div>`
+         + `<div class="gwords">${g.words.map(esc).join(", ")}</div></div>`;
+  }).join("");
+}
+function renderCells(){
+  const solvedWords = new Set(cur.st.solved.flatMap(i => cur.groups[i].words));
+  const left = cur.st.done ? [] : cur.order.filter(w => !solvedWords.has(w));
+  el("cells").innerHTML = left.map(w =>
+    `<button class="cell${cur.sel.has(w) ? " sel" : ""}" data-w="${esc(w)}">${segments[w].map(esc).join("&shy;")}</button>`
+  ).join("");
+  fitCells();
+}
+function renderControls(){
+  const done = cur.st.done;
+  el("controls").style.display = done ? "none" : "";
+  el("mistakesRow").style.display = done ? "none" : "";
+  el("btnSubmit").disabled = cur.sel.size !== 4;
+  el("btnClear").disabled = cur.sel.size === 0;
+  const left = MAX_MISTAKES - cur.st.mistakes;
+  el("dots").innerHTML = Array.from({ length: MAX_MISTAKES }, (_, i) => `<span class="dot${i >= left ? " used" : ""}"></span>`).join("");
+}
+function renderResult(){
+  const r = el("result");
+  if(!cur.st.done){ r.classList.remove("show"); return; }
+  r.classList.add("show");
+  const m = cur.st.mistakes;
+  el("resHeadline").textContent = cur.st.won
+    ? (m === 0 ? "Perfekt – ohne Fehler!" : m === 1 ? "Stark – nur ein Fehler!" : `Geschafft – mit ${m} Fehlern.`)
+    : "Diesmal nicht – hier ist die Auflösung.";
+  el("resGrid").innerHTML = emojiRows().join("<br>");
+  updateCountdown();
+}
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!cur || !cur.st.done || cur.num !== todayNumber()){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Nächstes Rätsel in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+function render(){
+  el("puzzleLabel").textContent = cur.num === todayNumber() ? `Täglich · #${cur.num}` : `Rätsel #${cur.num}`;
+  renderSolved();
+  renderCells();
+  renderControls();
+  renderResult();
+}
+
+/* ================= Auswahl & Prüfen ================= */
+el("cells").addEventListener("click", e => {
+  const b = e.target.closest(".cell");
+  if(!b || cur.st.done) return;
+  const w = b.dataset.w;
+  if(cur.sel.has(w)) cur.sel.delete(w);
+  else if(cur.sel.size < 4) cur.sel.add(w);
+  else return;
+  b.classList.toggle("sel", cur.sel.has(w));
+  renderControls();
+});
+
+function submit(){
+  if(cur.sel.size !== 4 || cur.st.done) return;
+  const pick = [...cur.sel];
+  const key = pick.slice().sort().join("|");
+  if(cur.st.guesses.some(g => g.slice().sort().join("|") === key)){ toast("Schon versucht!"); return; }
+  cur.st.guesses.push(pick);
+
+  const counts = {};
+  pick.forEach(w => { const g = groupOf(w); counts[g] = (counts[g] || 0) + 1; });
+  const hit = Object.keys(counts).find(g => counts[g] === 4);
+
+  // ausgewählte Felder hüpfen nacheinander
+  const cells = [...document.querySelectorAll(".cell.sel")];
+  cells.forEach((c, i) => setTimeout(() => c.classList.add("jump"), i * 90));
+  setTimeout(() => {
+    if(hit !== undefined){
+      cur.st.solved.push(Number(hit));
+      cur.sel.clear();
+      if(cur.st.solved.length === 4){ cur.st.done = true; cur.st.won = true; }
+    }else{
+      cur.st.mistakes++;
+      const grid = el("cells");
+      grid.classList.remove("shake"); void grid.offsetWidth; grid.classList.add("shake");
+      if(Object.values(counts).includes(3)) toast("Einer fehlt noch …");
+      if(cur.st.mistakes >= MAX_MISTAKES){ cur.st.done = true; cur.st.won = false; cur.sel.clear(); }
+    }
+    if(cur.st.done) cur.st.day = cur.num === todayNumber();
+    persist();
+    render();
+    if(cur.st.done) setTimeout(() => el("result").scrollIntoView({ behavior:"smooth", block:"nearest" }), 150);
+  }, 4 * 90 + 300);
+}
+
+/* ================= Teilen ================= */
+function emojiRows(){
+  return cur.st.guesses.map(g => g.map(w => EMOJI[cur.groups[groupOf(w)].level]).join(""));
+}
+function shareText(){
+  return `VERBINDUNGEN #${cur.num}\n${emojiRows().join("\n")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Statistik ================= */
+function openStats(){
+  const nums = Object.keys(saved).map(Number).filter(n => saved[n].done);
+  const won = nums.filter(n => saved[n].won);
+  const onDay = n => saved[n] && saved[n].won && saved[n].day;
+  const today = todayNumber();
+  let streak = 0;
+  for(let n = onDay(today) ? today : today - 1; n >= 1 && onDay(n); n--) streak++;
+  let best = 0, run = 0;
+  for(let n = 1; n <= today; n++){ run = onDay(n) ? run + 1 : 0; best = Math.max(best, run); }
+  el("sPlayed").textContent = nums.length;
+  el("sWin").textContent = nums.length ? Math.round(won.length / nums.length * 100) : 0;
+  el("sPerfect").textContent = won.filter(n => saved[n].mistakes === 0).length;
+  el("sStreak").textContent = streak;
+  el("sMax").textContent = best;
+  openOverlay("statsOverlay");
+}
+
+/* ================= Archiv ================= */
+function openArchive(){
+  const today = todayNumber();
+  let html = "";
+  for(let n = today; n >= 1; n--){
+    const st = saved[n];
+    const status = !st || !st.guesses.length ? "" : st.done ? (st.won ? " ✅" : " ❌") : " …";
+    html += `<button data-num="${n}" class="${cur.num === n ? "cur" : ""}">#${n}${status}<small>${dateOf(n)}</small></button>`;
+  }
+  el("games").innerHTML = html;
+  openOverlay("archiveOverlay");
+}
+el("games").addEventListener("click", e => {
+  const b = e.target.closest("button[data-num]");
+  if(!b) return;
+  closeOverlays();
+  openGame(Number(b.dataset.num));
+});
+
+/* ================= Modals ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeOverlays(); });
+
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnArchive").addEventListener("click", openArchive);
+el("btnShuffle").addEventListener("click", () => { shuffle(cur.order); renderCells(); });
+el("btnClear").addEventListener("click", () => { cur.sel.clear(); renderCells(); renderControls(); });
+el("btnSubmit").addEventListener("click", submit);
+el("btnShare").addEventListener("click", doShare);
+
+/* ================= Start ================= */
+openGame(todayNumber());
+if(!load(K_HELP, false)){
+  openOverlay("helpOverlay");
+  save(K_HELP, true);
+}
+</script>
+</body>
+</html>

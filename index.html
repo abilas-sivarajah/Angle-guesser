@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tägliche Rätsel – ANGLE &amp; CONTEXTO</title>
-<meta name="description" content="Jeden Tag neue Rätsel: Winkel schätzen mit ANGLE, Wörter nach Bedeutung finden mit CONTEXTO.">
+<title>Tägliche Rätsel – 7 Spiele</title>
+<meta name="description" content="Jeden Tag neue Rätsel: Wörter, Zahlen, Logik und Schätzen – FÜNF, VERBINDUNGEN, CONTEXTO, ZIFFERN, SUDOKU, DAMEN und ANGLE.">
 <meta name="theme-color" content="#0d0d0f">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Tägliche Rätsel – ANGLE &amp; CONTEXTO">
-<meta property="og:description" content="Jeden Tag neue Rätsel: Winkel schätzen mit ANGLE, Wörter nach Bedeutung finden mit CONTEXTO.">
+<meta property="og:title" content="Tägliche Rätsel – 7 Spiele">
+<meta property="og:description" content="Jeden Tag neue Rätsel: Wörter, Zahlen, Logik und Schätzen – FÜNF, VERBINDUNGEN, CONTEXTO, ZIFFERN, SUDOKU, DAMEN und ANGLE.">
 <meta name="twitter:card" content="summary">
 <style>
   :root{
@@ -34,41 +34,47 @@
     justify-content:center;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{width:100%;max-width:560px;padding:28px 16px 48px;display:flex;flex-direction:column;align-items:center}
+  .wrap{width:100%;max-width:900px;padding:28px 16px 48px;display:flex;flex-direction:column;align-items:center}
 
   header{display:flex;align-items:center;gap:12px;user-select:none}
   header h1{margin:0;font-size:36px;font-weight:400;letter-spacing:.06em;color:var(--accent);line-height:1}
   .logo{width:40px;height:40px;flex:none}
-  .tagline{margin:12px 0 26px;color:var(--muted);font-size:15px;text-align:center}
+  .tagline{margin:12px 0 0;color:var(--muted);font-size:15px;text-align:center}
+  .today{margin:8px 0 8px;font-size:14px;color:var(--text);text-align:center;min-height:20px}
+  .today b{color:var(--green)}
 
-  .games{width:100%;display:flex;flex-direction:column;gap:12px}
+  section{width:100%;margin-top:18px}
+  section h2{
+    margin:0 0 10px 2px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  }
+  .games{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:12px}
   .card{
-    display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;
-    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;
+    display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
     color:inherit;text-decoration:none;transition:border-color .15s,background .15s;
   }
   .card:hover{border-color:var(--accent);background:#232428}
   .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .card svg.icon{width:56px;height:56px;display:block}
+  .card svg.icon{width:52px;height:52px;display:block}
   .card .name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .card h2{margin:0;font-size:20px;font-weight:600;letter-spacing:.04em}
+  .card h3{margin:0;font-size:19px;font-weight:600;letter-spacing:.04em}
   .lang{
     font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--muted);
     border:1px solid var(--line);border-radius:5px;padding:1px 5px;
   }
   .card p{margin:4px 0 0;font-size:14px;line-height:1.45;color:#d2d2d6}
-  .status{margin-top:8px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .status{margin-top:7px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
   .status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
-  .status.solved{color:var(--green)}
-  .status.solved::before{background:var(--green)}
-  .status.failed{color:var(--red)}
-  .status.failed::before{background:var(--red)}
-  .status.started{color:var(--text)}
-  .status.started::before{background:#a8862a}
+  .status.won{color:var(--green)}
+  .status.won::before{background:var(--green)}
+  .status.lost{color:var(--red)}
+  .status.lost::before{background:var(--red)}
+  .status.playing{color:var(--text)}
+  .status.playing::before{background:#b8912a}
   .chev{color:var(--muted);font-size:24px;line-height:1}
   .card:hover .chev{color:var(--accent)}
 
-  footer{margin-top:28px;font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
+  footer{margin-top:30px;font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
@@ -84,38 +90,125 @@
     <h1>RÄTSEL</h1>
   </header>
   <p class="tagline">Jeden Tag neue Rätsel – für alle dieselben.</p>
+  <p class="today" id="today"></p>
 
-  <nav class="games" aria-label="Spiele">
-    <a class="card" href="/angle">
-      <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
-        <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
-        <path d="M10 36 L38 10" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
-        <path d="M10 36 H36" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
-        <path d="M26 36 A16 16 0 0 0 21 25" fill="none" stroke="#e6503c" stroke-width="2.4"/>
-      </svg>
-      <div>
-        <div class="name"><h2>ANGLE</h2><span class="lang">DE</span></div>
-        <p>Schätze den gezeigten Winkel – du hast 4 Versuche.</p>
-        <div class="status" id="statusAngle">Heute noch offen</div>
-      </div>
-      <span class="chev" aria-hidden="true">›</span>
-    </a>
+  <section>
+    <h2>Wörter</h2>
+    <nav class="games" aria-label="Wortspiele">
+      <a class="card" href="/fuenf" data-game="fuenf">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <rect x="10" y="17" width="12" height="14" rx="2" fill="#e6503c"/>
+          <rect x="26" y="17" width="12" height="14" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+        </svg>
+        <div>
+          <div class="name"><h3>FÜNF</h3><span class="lang">DE</span></div>
+          <p>Errate das Wort mit fünf Buchstaben in sechs Versuchen.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
 
-    <a class="card" href="/contexto">
-      <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
-        <rect x="3" y="3" width="42" height="42" rx="8" fill="none" stroke="#e6503c" stroke-width="3"/>
-        <rect x="11" y="13" width="26" height="5" rx="2.5" fill="#e6503c"/>
-        <rect x="11" y="21.5" width="18" height="5" rx="2.5" fill="#e6503c" opacity=".7"/>
-        <rect x="11" y="30" width="10" height="5" rx="2.5" fill="#e6503c" opacity=".45"/>
-      </svg>
-      <div>
-        <div class="name"><h2>CONTEXTO</h2><span class="lang">EN</span></div>
-        <p>Finde das geheime Wort. Jeder Tipp zeigt, wie nah er ihm in der Bedeutung ist.</p>
-        <div class="status" id="statusContexto">Heute noch offen</div>
-      </div>
-      <span class="chev" aria-hidden="true">›</span>
-    </a>
-  </nav>
+      <a class="card" href="/verbindungen" data-game="verbindungen">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <rect x="10" y="10" width="12" height="12" rx="2" fill="#e6503c"/>
+          <rect x="26" y="10" width="12" height="12" rx="2" fill="#e6503c"/>
+          <rect x="10" y="26" width="12" height="12" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+          <rect x="26" y="26" width="12" height="12" rx="2" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+        </svg>
+        <div>
+          <div class="name"><h3>VERBINDUNGEN</h3><span class="lang">DE</span></div>
+          <p>Sortiere 16 Begriffe in vier geheime Gruppen.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+
+      <a class="card" href="/contexto" data-game="contexto">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="8" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <rect x="11" y="13" width="26" height="5" rx="2.5" fill="#e6503c"/>
+          <rect x="11" y="21.5" width="18" height="5" rx="2.5" fill="#e6503c" opacity=".7"/>
+          <rect x="11" y="30" width="10" height="5" rx="2.5" fill="#e6503c" opacity=".45"/>
+        </svg>
+        <div>
+          <div class="name"><h3>CONTEXTO</h3><span class="lang">EN</span></div>
+          <p>Finde das geheime Wort. Jeder Tipp zeigt, wie nah er ihm in der Bedeutung ist.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+    </nav>
+  </section>
+
+  <section>
+    <h2>Zahlen &amp; Logik</h2>
+    <nav class="games" aria-label="Zahlen- und Logikspiele">
+      <a class="card" href="/ziffern" data-game="ziffern">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <path d="M11 17h10M16 12v10M27 17h10M12 31l8 8M20 31l-8 8M27 32h10M27 38h10" stroke="#e6503c" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="name"><h3>ZIFFERN</h3></div>
+          <p>Erreiche die Zielzahl mit + − × ÷ – drei Runden am Tag.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+
+      <a class="card" href="/sudoku" data-game="sudoku">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <path d="M17 4v40M31 4v40M4 17h40M4 31h40" stroke="#e6503c" stroke-width="2"/>
+          <text x="10.5" y="15" font-size="10" font-weight="700" fill="#e6503c" text-anchor="middle" font-family="Arial">5</text>
+          <text x="24" y="28.5" font-size="10" font-weight="700" fill="#e6503c" text-anchor="middle" font-family="Arial">3</text>
+          <text x="37.5" y="42" font-size="10" font-weight="700" fill="#e6503c" text-anchor="middle" font-family="Arial">8</text>
+        </svg>
+        <div>
+          <div class="name"><h3>SUDOKU</h3></div>
+          <p>Der Klassiker – jeden Tag ein neues mit genau einer Lösung.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+
+      <a class="card" href="/damen" data-game="damen">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <path d="M12 33l-2-15 8 7 6-11 6 11 8-7-2 15z" fill="#e6503c"/>
+          <rect x="12" y="35" width="24" height="3.5" rx="1.5" fill="#e6503c"/>
+        </svg>
+        <div>
+          <div class="name"><h3>DAMEN</h3></div>
+          <p>Eine Dame pro Zeile, Spalte und Farbe – ohne dass sich zwei berühren.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+    </nav>
+  </section>
+
+  <section>
+    <h2>Schätzen</h2>
+    <nav class="games" aria-label="Schätzspiele">
+      <a class="card" href="/angle" data-game="angle">
+        <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+          <path d="M10 36 L38 10" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
+          <path d="M10 36 H36" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
+          <path d="M26 36 A16 16 0 0 0 21 25" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+        </svg>
+        <div>
+          <div class="name"><h3>ANGLE</h3><span class="lang">DE</span></div>
+          <p>Schätze den gezeigten Winkel – du hast 4 Versuche.</p>
+          <div class="status">Heute noch offen</div>
+        </div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+    </nav>
+  </section>
 
   <footer>Dein Fortschritt wird nur in diesem Browser gespeichert.</footer>
 </div>
@@ -127,28 +220,32 @@ function load(key){
   try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
   catch(e){ return null; }
 }
-function setStatus(id, text, cls){
-  const s = document.getElementById(id);
-  s.textContent = text;
-  if(cls) s.classList.add(cls);
-}
 
 const now = new Date();
 const p = n => String(n).padStart(2, "0");
+const dateKey = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate());
 const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 
-/* ANGLE: Spielstand des heutigen Rätsels (Schlüssel wie in angle/index.html) */
+/* Spielstand je Spiel: {state: playing|won|lost, text} oder null (noch nicht gespielt).
+   Die neueren Spiele melden ihn selbst unter "raetsel.status" (siehe README). */
+const reported = load("raetsel.status") || {};
+const status = {};
+Object.keys(reported).forEach(slug => {
+  const s = reported[slug];
+  if(s && s.dateKey === dateKey) status[slug] = { state:s.state, text:s.text };
+});
+
+// ANGLE: eigener Speicherstand (angle/index.html)
 (function(){
-  const dateKey = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate());
   const d = load("angleguesser.daily");
   if(!d || d.dateKey !== dateKey) return;
   const n = (d.guesses || []).length;
-  if(d.done && d.won) setStatus("statusAngle", `Heute gelöst · ${n}/4`, "solved");
-  else if(d.done)     setStatus("statusAngle", "Heute nicht geschafft", "failed");
-  else if(n)          setStatus("statusAngle", `Angefangen · ${n}/4`, "started");
+  if(d.done && d.won) status.angle = { state:"won", text:`Gelöst · ${n}/4` };
+  else if(d.done)     status.angle = { state:"lost", text:"Nicht geschafft" };
+  else if(n)          status.angle = { state:"playing", text:`${n}/4 Versuche` };
 })();
 
-/* CONTEXTO: Spielnummer wie in contexto/index.html (Spiel #1 = 28.09.2026) */
+// CONTEXTO: eigener Speicherstand (contexto/index.html, Spiel #1 = 28.09.2026)
 (function(){
   const num = Math.max(1, Math.round((todayUTC - Date.UTC(2026, 8, 28)) / 86400000) + 1);
   const games = load("contexto.en.games");
@@ -156,10 +253,24 @@ const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   if(!g) return;
   const n = (g.g || []).length;
   const tries = `${n} ${n === 1 ? "Versuch" : "Versuche"}`;
-  if(g.done && g.won) setStatus("statusContexto", `Heute gelöst · ${tries}`, "solved");
-  else if(g.done)     setStatus("statusContexto", "Heute aufgegeben", "failed");
-  else if(n)          setStatus("statusContexto", `Angefangen · ${tries}`, "started");
+  if(g.done && g.won) status.contexto = { state:"won", text:`Gelöst · ${tries}` };
+  else if(g.done)     status.contexto = { state:"lost", text:"Aufgegeben" };
+  else if(n)          status.contexto = { state:"playing", text:tries };
 })();
+
+const cards = document.querySelectorAll(".card[data-game]");
+let finished = 0;
+cards.forEach(card => {
+  const s = status[card.dataset.game];
+  if(!s) return;
+  const el = card.querySelector(".status");
+  el.classList.add(s.state);
+  el.textContent = s.state === "playing" ? `Angefangen · ${s.text}` : `Heute: ${s.text}`;
+  if(s.state !== "playing") finished++;
+});
+document.getElementById("today").innerHTML = finished
+  ? `Heute gespielt: <b>${finished} von ${cards.length}</b>`
+  : `${cards.length} Rätsel warten heute auf dich.`;
 </script>
 </body>
 </html>
