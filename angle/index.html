@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ANGLE – Winkel raten</title>
+<meta name="description" content="Errate den gezeigten Winkel in 4 Versuchen. Jeden Tag ein neues Rätsel.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/angle/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ANGLE – Winkel raten">
+<meta property="og:description" content="Errate den gezeigten Winkel in 4 Versuchen. Jeden Tag ein neues Rätsel.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --arc:#4a7fd4;
+    --ghost:#7d7f88;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 16px 48px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{
+    margin:0;font-size:38px;font-weight:400;letter-spacing:.06em;
+    color:var(--accent);line-height:1;
+  }
+  .logo{width:42px;height:42px;flex:none}
+  .icons{display:flex;gap:18px;margin-top:14px}
+  .icons button,.icons a{
+    background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);
+    display:flex;border-radius:8px;
+  }
+  .icons button:hover,.icons a:hover{background:#ffffff12}
+  .icons svg{width:24px;height:24px;display:block}
+
+  .puzzle-label{margin-top:16px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+  /* ---------- board ---------- */
+  .board{width:100%;margin:6px 0 4px}
+  .board svg{width:100%;height:auto;display:block;overflow:visible}
+  .ray{stroke:var(--accent);stroke-width:2.4;stroke-linecap:round}
+  .guess-ray{stroke:var(--ghost);stroke-width:2;stroke-dasharray:6 5;stroke-linecap:round}
+  .arc{stroke:var(--arc);stroke-width:2;fill:none}
+  .vertex{fill:#fff;stroke:var(--bg);stroke-width:1.5}
+  .board-note{
+    text-align:center;font-size:13px;color:var(--muted);min-height:18px;
+  }
+
+  /* ---------- input ---------- */
+  .inputrow{display:flex;gap:8px;margin-top:14px;width:100%;max-width:290px}
+  #guessInput{
+    flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 14px;font-size:17px;font-family:inherit;text-align:center;
+    -moz-appearance:textfield;
+  }
+  #guessInput::-webkit-outer-spin-button,#guessInput::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  #guessInput:focus{outline:none;border-color:var(--accent)}
+  #guessInput:disabled{opacity:.45}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+  a.btn{text-decoration:none;display:inline-block}
+
+  .attempts{margin-top:10px;font-size:14px;font-weight:600;color:var(--text)}
+
+  /* ---------- guesses ---------- */
+  .guesses{margin-top:8px;width:100%;max-width:290px;display:flex;flex-direction:column;gap:5px}
+  .grow{display:grid;grid-template-columns:78px 44px 1fr;gap:5px;animation:pop .18s ease-out}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .cell{background:var(--panel);border-radius:6px;padding:8px 4px;text-align:center;font-size:15px;line-height:1.2}
+  .cell.dir{font-size:15px}
+  .f-win{background:#2e7d46}
+  .f-hot{background:#c2452b}
+  .f-warmhot{background:#a8602a}
+  .f-warm{background:#7a6a2c}
+  .f-cold{background:#2f5b8a}
+  .f-freeze{background:#3a4652}
+
+  /* ---------- result ---------- */
+  .result{margin-top:18px;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px}
+  .result.show{display:flex}
+  .result .headline{font-size:19px;font-weight:600}
+  .result .sub{font-size:14px;color:var(--muted)}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:#000000b8;display:none;
+    align-items:center;justify-content:center;padding:16px;z-index:20;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    width:100%;max-width:420px;padding:22px;max-height:86vh;overflow:auto;
+  }
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal .close{position:absolute}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .legend{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+  .legend .grow{max-width:none}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;margin-bottom:18px;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:26px;font-weight:600}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+  .dist{display:flex;flex-direction:column;gap:5px}
+  .distrow{display:flex;align-items:center;gap:8px;font-size:13px}
+  .distrow .k{width:14px;text-align:right;color:var(--muted)}
+  .distbar{
+    background:var(--accent);border-radius:3px;padding:2px 6px;font-size:12px;
+    text-align:right;min-width:24px;color:#fff;
+  }
+  .distbar.zero{background:var(--panel-2)}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="6" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <path d="M10 36 L38 10" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
+      <path d="M10 36 H36" stroke="#e6503c" stroke-width="3" stroke-linecap="round"/>
+      <path d="M26 36 A16 16 0 0 0 21 25" fill="none" stroke="#e6503c" stroke-width="2.4"/>
+    </svg>
+    <h1>ANGLE</h1>
+  </header>
+
+  <div class="icons">
+    <a href="/" title="Alle Spiele" aria-label="Alle Spiele">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
+    <button id="btnHelp" title="Anleitung" aria-label="Anleitung">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistik" aria-label="Statistik">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+    <button id="btnMode" title="Modus wechseln" aria-label="Modus wechseln">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 3l4 4-4 4V8h-5.2c-1 0-1.7.4-2.4 1.3L8 11l-1.4-1.8C5.6 7.9 4.4 7.2 3 7.2V5.2c2.1 0 3.9 1 5.2 2.7l.6.8.6-.8C10.7 6.2 12.3 6 13.8 6H17V3zM3 16.8c1.4 0 2.6-.7 3.6-2l1.4-1.8L9.4 15c.7.9 1.4 1.3 2.4 1.3H17V13l4 4-4 4v-3h-5.2c-1.5 0-3.1-.2-4.4-1.9l-.6-.8-.6.8C4.9 17.8 3.1 18.8 1 18.8v-2h2z"/></svg>
+    </button>
+  </div>
+
+  <div class="puzzle-label" id="puzzleLabel">Täglich</div>
+
+  <div class="board">
+    <svg id="svg" viewBox="0 0 400 250" role="img" aria-label="Zu ratender Winkel">
+      <path id="arc" class="arc"></path>
+      <line id="guessRay" class="guess-ray" style="display:none"></line>
+      <line id="rayA" class="ray"></line>
+      <line id="rayB" class="ray"></line>
+      <circle id="vertex" class="vertex" r="3.5"></circle>
+    </svg>
+  </div>
+  <div class="board-note" id="boardNote"></div>
+
+  <div class="inputrow">
+    <input id="guessInput" type="number" inputmode="numeric" min="1" max="359" placeholder="1 – 359" autocomplete="off">
+    <button id="btnGuess" class="btn">Raten!</button>
+  </div>
+
+  <div class="attempts" id="attempts">Versuche: 0/4</div>
+  <div class="guesses" id="guesses"></div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Teilen</button>
+      <button id="btnNew" class="btn" style="display:none">Neues Spiel</button>
+      <a class="btn" href="/">Weitere Spiele</a>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>So geht's</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Schätze den gezeigten Winkel in <strong>4 Versuchen</strong>. Erlaubt sind ganze Zahlen von <strong>1°</strong> bis <strong>359°</strong>.</p>
+    <p>Nach jedem Tipp bekommst du zwei Hinweise:</p>
+    <ul>
+      <li><strong>Pfeil</strong> – ⬆️ der echte Winkel ist größer, ⬇️ er ist kleiner.</li>
+      <li><strong>Temperatur</strong> – wie nah du dran bist.</li>
+    </ul>
+    <div class="legend">
+      <div class="grow"><div class="cell">0°</div><div class="cell dir">🎯</div><div class="cell f-win">Richtig!</div></div>
+      <div class="grow"><div class="cell">≤ 2°</div><div class="cell dir">⬆️</div><div class="cell f-hot">Heiß! 🔥</div></div>
+      <div class="grow"><div class="cell">≤ 5°</div><div class="cell dir">⬆️</div><div class="cell f-warmhot">Wird heiß 🟧</div></div>
+      <div class="grow"><div class="cell">≤ 12°</div><div class="cell dir">⬆️</div><div class="cell f-warm">Warm 🟨</div></div>
+      <div class="grow"><div class="cell">≤ 30°</div><div class="cell dir">⬇️</div><div class="cell f-cold">Kalt 🟦</div></div>
+      <div class="grow"><div class="cell">&gt; 30°</div><div class="cell dir">⬇️</div><div class="cell f-freeze">Eiskalt 🧊</div></div>
+    </div>
+    <p style="margin-top:16px"><strong>Täglich</strong> gibt es einen Winkel für alle – jeden Tag um Mitternacht einen neuen. Über das <span style="color:var(--accent)">⇄</span>-Symbol kommst du in den <strong>Übungsmodus</strong> mit unbegrenzt vielen Zufallsrunden (zählt nicht für die Statistik).</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistik</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Gespielt</span></div>
+      <div><span class="n" id="sWin">0</span><span class="l">Gewonnen&nbsp;%</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Aktuelle Serie</span></div>
+      <div><span class="n" id="sMax">0</span><span class="l">Beste Serie</span></div>
+    </div>
+    <h2 style="font-size:15px">Verteilung der Versuche</h2>
+    <div class="dist" id="dist"></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px">Nur tägliche Rätsel zählen in die Statistik.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const MAX_ATTEMPTS = 4;
+const CX = 200, CY = 128, RAY_LEN = 112, ARC_R = 38;
+const EPOCH = Date.UTC(2024, 0, 1);
+const K_STATS = "angleguesser.stats";
+const K_DAILY = "angleguesser.daily";
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+
+/* ================= Seeded RNG ================= */
+function hashStr(s){
+  let h = 2166136261;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ================= Rätsel-Erzeugung ================= */
+function todayKey(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
+}
+function puzzleNumber(dateKey){
+  const [y,m,d] = dateKey.split("-").map(Number);
+  return Math.round((Date.UTC(y, m-1, d) - EPOCH) / 86400000) + 1;
+}
+function dailyPuzzle(dateKey){
+  const rnd = mulberry32(hashStr("angle-" + dateKey));
+  rnd(); // erste Zahl verwerfen – bessere Streuung
+  return { angle: 1 + Math.floor(rnd()*359), rot: Math.floor(rnd()*360) };
+}
+function randomPuzzle(){
+  return { angle: 1 + Math.floor(Math.random()*359), rot: Math.floor(Math.random()*360) };
+}
+
+/* ================= Feedback ================= */
+function feedbackFor(diff){
+  if(diff === 0)  return { label:"Richtig!",   cls:"f-win",     emoji:"🎯" };
+  if(diff <= 2)   return { label:"Heiß!",      cls:"f-hot",     emoji:"🔥" };
+  if(diff <= 5)   return { label:"Wird heiß",  cls:"f-warmhot", emoji:"🟧" };
+  if(diff <= 12)  return { label:"Warm",       cls:"f-warm",    emoji:"🟨" };
+  if(diff <= 30)  return { label:"Kalt",       cls:"f-cold",    emoji:"🟦" };
+  return            { label:"Eiskalt",  cls:"f-freeze",  emoji:"🧊" };
+}
+
+/* ================= Zeichnen ================= */
+const el = id => document.getElementById(id);
+const $svg = { arc: el("arc"), rayA: el("rayA"), rayB: el("rayB"), guess: el("guessRay"), vertex: el("vertex") };
+
+function pt(deg, r){
+  const a = deg * Math.PI / 180;
+  return [CX + r*Math.cos(a), CY - r*Math.sin(a)];   // y invertiert -> Winkel wachsen gegen den Uhrzeigersinn
+}
+function setLine(node, deg, len){
+  const [x,y] = pt(deg, len);
+  node.setAttribute("x1", CX); node.setAttribute("y1", CY);
+  node.setAttribute("x2", x);  node.setAttribute("y2", y);
+}
+function arcPath(from, sweep, r){
+  const [x1,y1] = pt(from, r);
+  const [x2,y2] = pt(from + sweep, r);
+  const large = sweep > 180 ? 1 : 0;
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 0 ${x2} ${y2}`;  // sweep-flag 0 = gegen den Uhrzeigersinn
+}
+function drawBoard(angle, rot, guessAngle){
+  setLine($svg.rayA, rot, RAY_LEN);
+  setLine($svg.rayB, rot + angle, RAY_LEN);
+  $svg.arc.setAttribute("d", arcPath(rot, angle, ARC_R));
+  $svg.vertex.setAttribute("cx", CX);
+  $svg.vertex.setAttribute("cy", CY);
+  if(guessAngle == null){
+    $svg.guess.style.display = "none";
+  }else{
+    $svg.guess.style.display = "";
+    setLine($svg.guess, rot + guessAngle, RAY_LEN);
+  }
+}
+
+/* ================= Spielzustand ================= */
+let state = null;   // {mode, angle, rot, guesses:[], done, won, dateKey, num}
+
+function newDailyState(){
+  const dateKey = todayKey();
+  const saved = load(K_DAILY, null);
+  const p = dailyPuzzle(dateKey);
+  if(saved && saved.dateKey === dateKey){
+    return { mode:"daily", dateKey, num:puzzleNumber(dateKey), angle:p.angle, rot:p.rot,
+             guesses:saved.guesses || [], done:!!saved.done, won:!!saved.won };
+  }
+  return { mode:"daily", dateKey, num:puzzleNumber(dateKey), angle:p.angle, rot:p.rot,
+           guesses:[], done:false, won:false };
+}
+function newPracticeState(){
+  const p = randomPuzzle();
+  return { mode:"practice", angle:p.angle, rot:p.rot, guesses:[], done:false, won:false };
+}
+function persist(){
+  if(state.mode !== "daily") return;
+  save(K_DAILY, { dateKey:state.dateKey, guesses:state.guesses, done:state.done, won:state.won });
+}
+
+/* ================= Statistik ================= */
+const emptyStats = { played:0, wins:0, streak:0, max:0, dist:{1:0,2:0,3:0,4:0}, fails:0, lastNum:null };
+function getStats(){ return Object.assign({}, emptyStats, load(K_STATS, {})); }
+function recordResult(won, tries, num){
+  const s = getStats();
+  if(s.lastNum === num) return;          // dasselbe Rätsel nicht doppelt zählen
+  s.lastNum = num;
+  s.played++;
+  if(won){
+    s.wins++;
+    s.dist = Object.assign({1:0,2:0,3:0,4:0}, s.dist);
+    s.dist[tries] = (s.dist[tries] || 0) + 1;
+    s.streak++;
+    s.max = Math.max(s.max, s.streak);
+  }else{
+    s.fails = (s.fails || 0) + 1;
+    s.streak = 0;
+  }
+  save(K_STATS, s);
+}
+function renderStats(){
+  const s = getStats();
+  el("sPlayed").textContent = s.played;
+  el("sWin").textContent = s.played ? Math.round(s.wins / s.played * 100) : 0;
+  el("sStreak").textContent = s.streak;
+  el("sMax").textContent = s.max;
+
+  const dist = Object.assign({1:0,2:0,3:0,4:0}, s.dist);
+  const rows = [["1",dist[1]],["2",dist[2]],["3",dist[3]],["4",dist[4]],["X",s.fails||0]];
+  const peak = Math.max(1, ...rows.map(r => r[1]));
+  el("dist").innerHTML = rows.map(([k,v]) => {
+    const pct = Math.round(v / peak * 100);
+    return `<div class="distrow"><span class="k">${k}</span>`
+         + `<div class="distbar${v ? "" : " zero"}" style="width:${Math.max(8, pct)}%">${v}</div></div>`;
+  }).join("");
+}
+
+/* ================= UI ================= */
+function toast(msg){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function renderGuesses(){
+  el("attempts").textContent = `Versuche: ${state.guesses.length}/${MAX_ATTEMPTS}`;
+  el("guesses").innerHTML = state.guesses.map(g => {
+    const diff = Math.abs(state.angle - g);
+    const fb = feedbackFor(diff);
+    const dir = diff === 0 ? "🎯" : (state.angle > g ? "⬆️" : "⬇️");
+    return `<div class="grow"><div class="cell">${g}°</div>`
+         + `<div class="cell dir">${dir}</div>`
+         + `<div class="cell ${fb.cls}">${fb.label}</div></div>`;
+  }).join("");
+}
+
+function renderHeader(){
+  el("puzzleLabel").textContent = state.mode === "daily"
+    ? `Täglich · #${state.num}`
+    : "Übungsmodus";
+}
+
+function setInputEnabled(on){
+  el("guessInput").disabled = !on;
+  el("btnGuess").disabled = !on;
+}
+
+function renderResult(){
+  const r = el("result");
+  if(!state.done){
+    r.classList.remove("show");
+    el("countdown").textContent = "";
+    return;
+  }
+  r.classList.add("show");
+  const tries = state.guesses.length;
+  el("resHeadline").textContent = state.won
+    ? ["", "Perfekt – im ersten Versuch!", "Stark, 2 Versuche!", "Geschafft in 3.", "Gerade noch – 4/4."][tries]
+    : "Diesmal nicht.";
+  el("resSub").textContent = `Der Winkel war ${state.angle}°.`;
+  el("btnNew").style.display = state.mode === "practice" ? "" : "none";
+  updateCountdown();
+}
+
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!state.done || state.mode !== "daily"){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 0, 0);
+  let s = Math.max(0, Math.floor((next - now)/1000));
+  const p = n => String(n).padStart(2,"0");
+  cd.textContent = `Nächstes Angle in ${p(Math.floor(s/3600))}:${p(Math.floor(s/60)%60)}:${p(s%60)}`;
+}
+setInterval(() => { if(state && state.done && state.mode === "daily") updateCountdown(); }, 1000);
+
+function render(){
+  renderHeader();
+  renderGuesses();
+  renderResult();
+  setInputEnabled(!state.done);
+  if(state.done){
+    drawBoard(state.angle, state.rot, null);
+    el("boardNote").textContent = `Lösung: ${state.angle}°`;
+  }else{
+    drawBoard(state.angle, state.rot, null);
+    el("boardNote").textContent = "";
+  }
+}
+
+/* ================= Auflösungs-Animation ================= */
+function animateReveal(fromAngle){
+  const to = state.angle;
+  if(fromAngle === to){ render(); return; }
+  const dur = 700, t0 = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  el("boardNote").textContent = "";
+  (function step(now){
+    const t = Math.min(1, (now - t0) / dur);
+    const cur = fromAngle + (to - fromAngle) * ease(t);
+    drawBoard(state.angle, state.rot, cur);
+    el("boardNote").textContent = `${Math.round(cur)}°`;
+    if(t < 1){
+      requestAnimationFrame(step);
+    }else{
+      setTimeout(() => {
+        drawBoard(state.angle, state.rot, null);
+        el("boardNote").textContent = `Lösung: ${state.angle}°`;
+      }, 450);
+    }
+  })(t0);
+}
+
+/* ================= Raten ================= */
+function submitGuess(){
+  if(state.done) return;
+  const raw = el("guessInput").value.trim();
+  if(raw === ""){ toast("Bitte eine Zahl eingeben."); return; }
+  const g = Number(raw);
+  if(!Number.isInteger(g) || g < 1 || g > 359){ toast("Nur ganze Zahlen von 1 bis 359."); return; }
+  if(state.guesses.includes(g)){ toast(`${g}° hattest du schon.`); return; }
+
+  state.guesses.push(g);
+  el("guessInput").value = "";
+
+  if(g === state.angle){ state.done = true; state.won = true; }
+  else if(state.guesses.length >= MAX_ATTEMPTS){ state.done = true; state.won = false; }
+
+  persist();
+  renderHeader();
+  renderGuesses();
+  setInputEnabled(!state.done);
+  renderResult();
+
+  if(state.done){
+    if(state.mode === "daily") recordResult(state.won, state.guesses.length, state.num);
+    animateReveal(g);
+    // erst nach der Auflösungs-Animation, damit sie nicht verdeckt wird
+    setTimeout(() => { if(state.mode === "daily" && state.done) openStats(); }, 2600);
+  }else{
+    el("guessInput").focus();
+  }
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const title = state.mode === "daily"
+    ? `ANGLE #${state.num}`
+    : "ANGLE (Übung)";
+  const score = state.won ? `${state.guesses.length}/${MAX_ATTEMPTS}` : `X/${MAX_ATTEMPTS}`;
+  const lines = state.guesses.map(g => {
+    const diff = Math.abs(state.angle - g);
+    const fb = feedbackFor(diff);
+    const dir = diff === 0 ? "" : (state.angle > g ? "⬆️" : "⬇️");
+    return fb.emoji + dir;
+  });
+  return `${title} ${score}\n${lines.join("\n")}`;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("In die Zwischenablage kopiert!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("In die Zwischenablage kopiert!"); }
+    catch(e2){ toast("Kopieren nicht möglich."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Modals ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+function openStats(){ renderStats(); openOverlay("statsOverlay"); }
+
+document.querySelectorAll(".overlay").forEach(o => {
+  o.addEventListener("click", e => { if(e.target === o) closeOverlays(); });
+});
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeOverlays(); });
+
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnStats").addEventListener("click", openStats);
+el("btnMode").addEventListener("click", () => {
+  state = state.mode === "daily" ? newPracticeState() : newDailyState();
+  render();
+  el("guessInput").focus();
+});
+el("btnGuess").addEventListener("click", submitGuess);
+el("guessInput").addEventListener("keydown", e => { if(e.key === "Enter") submitGuess(); });
+el("btnShare").addEventListener("click", doShare);
+el("btnNew").addEventListener("click", () => {
+  state = newPracticeState();
+  render();
+  el("guessInput").focus();
+});
+
+/* ================= Start ================= */
+state = newDailyState();
+render();
+if(!localStorage.getItem("angleguesser.seenHelp")){
+  openOverlay("helpOverlay");
+  try{ localStorage.setItem("angleguesser.seenHelp", "1"); }catch(e){}
+}
+el("guessInput").focus();
+</script>
+</body>
+</html>

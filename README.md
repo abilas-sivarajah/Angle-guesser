@@ -1,4 +1,20 @@
-# ANGLE – Winkel raten
+# Tägliche Rätsel – ANGLE & CONTEXTO
+
+Kleine tägliche Rätsel als statische Website – keine Build-Tools, kein Server-Code.
+
+| Pfad | Inhalt |
+|---|---|
+| `/` | Startseite: alle Spiele mit dem heutigen Spielstand |
+| `/angle` | ANGLE – Winkel raten (deutsch) |
+| `/contexto` | CONTEXTO – das geheime Wort über seine Bedeutung finden (englisch) |
+
+In jedem Spiel führt das ▦-Symbol oben links zurück zur Startseite, am Ende einer Runde zusätzlich
+„Weitere Spiele“ bzw. „More games“.
+
+Die Startseite liest den Spielstand aus dem `localStorage` der Spiele (`angleguesser.daily`,
+`contexto.en.games`). Wer dort Schlüssel oder Format ändert, muss `index.html` mitziehen.
+
+## ANGLE – `/angle`
 
 Ein Nachbau von [angle.wtf](https://angle.wtf): Errate den gezeigten Winkel in 4 Versuchen.
 
@@ -8,7 +24,7 @@ Ein Nachbau von [angle.wtf](https://angle.wtf): Errate den gezeigten Winkel in 4
 - **Teilen** – Emoji-Grid in die Zwischenablage
 - **Animation** – der Strahl dreht sich vom letzten Tipp auf die Lösung
 
-Keine Build-Tools, keine Abhängigkeiten: alles steckt in `index.html`.
+Keine Abhängigkeiten: alles steckt in `angle/index.html`.
 
 ## Lokal starten
 
@@ -18,9 +34,9 @@ Im Projektordner einen kleinen Webserver starten (braucht nur Node):
 npx serve .
 ```
 
-Danach die angezeigte Adresse öffnen, meist http://localhost:3000.
+Danach die angezeigte Adresse öffnen, meist http://localhost:3000 – dort liegt die Startseite.
 
-Zur Not tut es auch ein Doppelklick auf `index.html`. Über `file://` findet der Browser aber `/favicon.svg` nicht, und je nach Browser ist `localStorage` gesperrt – dann wird der Spielfortschritt nicht gespeichert. Zum Entwickeln also lieber der Server.
+Ein Doppelklick auf eine HTML-Datei reicht nicht: Über `file://` funktionieren die Links zwischen den Seiten und die Daten von CONTEXTO nicht, und je nach Browser ist `localStorage` gesperrt – dann wird der Spielfortschritt nicht gespeichert.
 
 ## Auf Vercel deployen
 
@@ -60,16 +76,20 @@ Dann auf [vercel.com/new](https://vercel.com/new) das Repo importieren. Framewor
 ## Dateien
 
 ```
-index.html     Spiel (HTML + CSS + JS + SVG)
-favicon.svg    Logo
+index.html     Startseite
+favicon.svg    Logo der Startseite
+angle/         ANGLE: index.html (HTML + CSS + JS + SVG) und favicon.svg
+contexto/      CONTEXTO, siehe unten
 vercel.json    Static-Hosting-Konfiguration (cleanUrls, Cache-Header)
 .vercelignore  hält die Build-Werkzeuge (und damit die Lösungsliste) aus dem Deployment
-contexto/      zweites Spiel, siehe unten
 ```
+
+Ein weiteres Spiel kommt in einen eigenen Ordner, bekommt auf der Startseite eine Karte
+(`<a class="card">` in `index.html`) und im Spiel einen Link zurück auf `/`.
 
 ## Anpassen
 
-Alles Wichtige steht oben in `index.html`:
+Alles Wichtige für ANGLE steht oben in `angle/index.html`:
 
 - `MAX_ATTEMPTS` – Anzahl der Versuche (Standard: 4)
 - `feedbackFor(diff)` – die Temperatur-Stufen und ihre Grenzen

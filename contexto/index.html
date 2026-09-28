@@ -45,11 +45,11 @@
   }
   .logo{width:40px;height:40px;flex:none}
   .icons{display:flex;gap:14px;margin-top:14px}
-  .icons button{
+  .icons button,.icons a{
     background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);
     display:flex;border-radius:8px;
   }
-  .icons button:hover:not(:disabled){background:#ffffff12}
+  .icons button:hover:not(:disabled),.icons a:hover{background:#ffffff12}
   .icons button:disabled{opacity:.3;cursor:default}
   .icons svg{width:24px;height:24px;display:block}
 
@@ -112,6 +112,8 @@
   .result .sub b{color:var(--text);font-size:17px}
   .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
   .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+  .more{font-size:14px;color:var(--accent);text-decoration:none}
+  .more:hover{text-decoration:underline}
 
   /* ---------- modal ---------- */
   .overlay{
@@ -171,6 +173,9 @@
   </header>
 
   <div class="icons">
+    <a href="/" title="All games" aria-label="All games">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4V4zm2 2v3h3V6H6zm7-2h7v7h-7V4zm2 2v3h3V6h-3zM4 13h7v7H4v-7zm2 2v3h3v-3H6zm7-2h7v7h-7v-7zm2 2v3h3v-3h-3z"/></svg>
+    </a>
     <button id="btnHelp" title="How to play" aria-label="How to play">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
     </button>
@@ -213,6 +218,7 @@
       <button id="btnMore" class="btn">Previous games</button>
     </div>
     <div class="countdown" id="countdown"></div>
+    <a class="more" href="/">More games →</a>
   </div>
 
   <div class="list sorted" id="guesses"></div>
