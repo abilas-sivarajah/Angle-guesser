@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CONTEXTO – find the secret word</title>
+<meta name="description" content="Guess the secret word. Every guess is ranked by how close it is in meaning. A new word every day.">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="/contexto/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CONTEXTO – find the secret word">
+<meta property="og:description" content="Guess the secret word. Every guess is ranked by how close it is in meaning. A new word every day.">
+<meta name="twitter:card" content="summary">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#1e1f22;
+    --panel-2:#2a2b2f;
+    --line:#35363b;
+    --text:#e9e9ea;
+    --muted:#9a9aa0;
+    --accent:#e6503c;
+    --green:#2e7d46;
+    --yellow:#a8862a;
+    --red:#b8452f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:520px;padding:18px 16px 48px;display:flex;flex-direction:column;align-items:center}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:10px;user-select:none}
+  header h1{
+    margin:0;font-size:34px;font-weight:400;letter-spacing:.06em;
+    color:var(--accent);line-height:1;
+  }
+  .logo{width:40px;height:40px;flex:none}
+  .icons{display:flex;gap:14px;margin-top:14px}
+  .icons button{
+    background:none;border:0;padding:4px;cursor:pointer;color:var(--accent);
+    display:flex;border-radius:8px;
+  }
+  .icons button:hover:not(:disabled){background:#ffffff12}
+  .icons button:disabled{opacity:.3;cursor:default}
+  .icons svg{width:24px;height:24px;display:block}
+
+  .info{
+    margin-top:16px;font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
+    display:flex;gap:14px;justify-content:center;flex-wrap:wrap;text-align:center;
+  }
+  .info b{color:var(--text);font-weight:600}
+
+  /* ---------- input ---------- */
+  .inputrow{display:flex;gap:8px;margin-top:12px;width:100%}
+  #guessInput{
+    flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:12px 14px;font-size:17px;font-family:inherit;
+  }
+  #guessInput:focus{outline:none;border-color:var(--accent)}
+  #guessInput:disabled{opacity:.45}
+  .btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:11px 16px;font-size:15px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){background:#3a3b40}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:#f0604c}
+
+  .message{margin-top:10px;min-height:20px;font-size:14px;color:var(--muted);text-align:center}
+  .message b{color:var(--text)}
+
+  /* ---------- guess rows ---------- */
+  .list{width:100%;display:flex;flex-direction:column;gap:5px}
+  .last{width:100%;margin-top:4px}
+  .last .row{outline:2px solid var(--text);outline-offset:-2px}
+  .list.sorted{margin-top:12px}
+  .row{
+    position:relative;overflow:hidden;background:var(--panel);border-radius:8px;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 14px;font-size:17px;line-height:1.2;
+  }
+  .row .bar{position:absolute;left:0;top:0;bottom:0;border-radius:8px 0 0 8px}
+  .row .w,.row .r{position:relative}
+  .row .r{font-variant-numeric:tabular-nums}
+  .row .tag{font-size:12px;color:#ffffffb0;margin-left:6px}
+  .row.flash{animation:flash .9s ease-out}
+  @keyframes flash{0%,40%{outline:2px solid var(--accent);outline-offset:-2px}100%{outline-color:transparent}}
+  .c-green{background:var(--green)}
+  .c-yellow{background:var(--yellow)}
+  .c-red{background:var(--red)}
+  .pop{animation:pop .18s ease-out}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+  /* ---------- result ---------- */
+  .result{
+    margin-top:16px;width:100%;text-align:center;display:none;flex-direction:column;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;
+  }
+  .result.show{display:flex}
+  .result .headline{font-size:20px;font-weight:600}
+  .result .sub{font-size:15px;color:#d2d2d6}
+  .result .sub b{color:var(--text);font-size:17px}
+  .result .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .countdown{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+
+  /* ---------- modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:#000000b8;display:none;
+    align-items:center;justify-content:center;padding:16px;z-index:20;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    width:100%;max-width:440px;padding:22px;max-height:86vh;overflow:auto;
+  }
+  .modal h2{margin:0 0 14px;font-size:20px;font-weight:600}
+  .modal p,.modal li{font-size:14.5px;line-height:1.55;color:#d2d2d6}
+  .modal ul{padding-left:20px;margin:10px 0}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start}
+  .xbtn{background:none;border:0;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}
+  .xbtn:hover{color:var(--text)}
+  .modal .list .row{font-size:15px;padding:8px 12px}
+  .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+  /* ---------- archive ---------- */
+  .games{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+  .games button{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:8px 4px;font-family:inherit;font-size:14px;cursor:pointer;line-height:1.3;
+  }
+  .games button:hover{background:#3a3b40}
+  .games button.cur{border-color:var(--accent)}
+  .games small{display:block;font-size:11px;color:var(--muted)}
+
+  /* ---------- stats ---------- */
+  .statnums{display:flex;justify-content:space-between;text-align:center;gap:6px}
+  .statnums div span{display:block}
+  .statnums .n{font-size:26px;font-weight:600}
+  .statnums .l{font-size:11px;color:var(--muted);line-height:1.25;margin-top:3px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;top:24px;transform:translateX(-50%);
+    background:#f0f0f0;color:#111;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="3" y="3" width="42" height="42" rx="8" fill="none" stroke="#e6503c" stroke-width="3"/>
+      <rect x="11" y="13" width="26" height="5" rx="2.5" fill="#e6503c"/>
+      <rect x="11" y="21.5" width="18" height="5" rx="2.5" fill="#e6503c" opacity=".7"/>
+      <rect x="11" y="30" width="10" height="5" rx="2.5" fill="#e6503c" opacity=".45"/>
+    </svg>
+    <h1>CONTEXTO</h1>
+  </header>
+
+  <div class="icons">
+    <button id="btnHelp" title="How to play" aria-label="How to play">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-3h2v2h-2v-2zm1-11c-1.8 0-3.2 1.2-3.4 2.9h2c.1-.6.6-1.1 1.4-1.1.8 0 1.4.5 1.4 1.2 0 .6-.4 1-1.1 1.5-.9.6-1.3 1.2-1.3 2.3v.4h2v-.3c0-.7.3-1 1.1-1.6.9-.6 1.4-1.4 1.4-2.4C15.5 7.2 14 6 12 6z"/></svg>
+    </button>
+    <button id="btnHint" title="Get a hint" aria-label="Get a hint">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 21h6v-1.5H9V21zm3-19a7 7 0 00-4 12.7V17a1 1 0 001 1h6a1 1 0 001-1v-2.3A7 7 0 0012 2zm2.9 11.1l-.9.6V16h-4v-2.3l-.9-.6a5 5 0 115.8 0z"/></svg>
+    </button>
+    <button id="btnGiveUp" title="Give up" aria-label="Give up">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 21V4h9.2l.5 2H20v10h-6.2l-.5-2H7v7H5zm2-9h7.8l.5 2H18V8h-4.8l-.5-2H7v6z"/></svg>
+    </button>
+    <button id="btnArchive" title="Previous games" aria-label="Previous games">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm-2 8h14v10H5V10zm2 2v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v2h2v-2h-2zm-8 4v2h2v-2H7zm4 0v2h2v-2h-2z"/></svg>
+    </button>
+    <button id="btnStats" title="Statistics" aria-label="Statistics">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+    </button>
+  </div>
+
+  <div class="info">
+    <span id="gameLabel">Game</span>
+    <span>Guesses: <b id="guessCount">0</b></span>
+    <span id="hintInfo" style="display:none">Hints: <b id="hintCount">0</b></span>
+  </div>
+
+  <div class="inputrow">
+    <input id="guessInput" type="text" placeholder="Loading…" autocomplete="off" autocapitalize="none"
+           autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="40" disabled>
+    <button id="btnGuess" class="btn" disabled>Guess</button>
+  </div>
+
+  <div class="message" id="message" aria-live="polite"></div>
+
+  <div class="last" id="last"></div>
+
+  <div class="result" id="result">
+    <div class="headline" id="resHeadline"></div>
+    <div class="sub" id="resSub"></div>
+    <div class="actions">
+      <button id="btnShare" class="btn primary">Share</button>
+      <button id="btnClosest" class="btn">Closest words</button>
+      <button id="btnMore" class="btn">Previous games</button>
+    </div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+  <div class="list sorted" id="guesses"></div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>How to play</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>Find the <strong>secret word</strong>. You have unlimited guesses.</p>
+    <p>The words are sorted by how similar they are to the secret word. After each guess you see its <strong>position</strong>: the secret word is <strong>#1</strong>, the lower the number the closer you are.</p>
+    <div class="list" style="margin:12px 0">
+      <div class="row"><div class="bar c-green" style="width:62%"></div><span class="w">kitten</span><span class="r">42</span></div>
+      <div class="row"><div class="bar c-yellow" style="width:36%"></div><span class="w">fence</span><span class="r">820</span></div>
+      <div class="row"><div class="bar c-red" style="width:14%"></div><span class="w">tax</span><span class="r">6531</span></div>
+    </div>
+    <ul>
+      <li><span style="color:#5cc27d">Green</span>: top 300 – very close.</li>
+      <li><span style="color:#d9b44a">Yellow</span>: 300 to 1500.</li>
+      <li><span style="color:#e8735c">Red</span>: further away.</li>
+    </ul>
+    <p>Similarity is about <strong>meaning and context</strong>, not spelling: words that show up in similar texts are close. It comes from word vectors (GloVe) learned from Wikipedia and news articles, so some neighbours may surprise you.</p>
+    <p>Plurals and verb forms count as their base word (<em>cats</em> → <em>cat</em>). Very common words like <em>the</em> or <em>with</em> don't count.</p>
+    <p>Stuck? The <span style="color:var(--accent)">💡</span> hint reveals a word closer than your best guess. There is a new word every day at midnight, and you can play all previous games.</p>
+  </div>
+</div>
+
+<!-- Give up -->
+<div class="overlay" id="giveUpOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Give up?</h2><button class="xbtn" data-close>&times;</button></div>
+    <p>The secret word will be revealed and this game counts as not solved.</p>
+    <div class="actions">
+      <button class="btn" data-close>Keep playing</button>
+      <button class="btn primary" id="btnConfirmGiveUp">Reveal the word</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive -->
+<div class="overlay" id="archiveOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Previous games</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="actions" style="justify-content:flex-start;margin:0 0 14px">
+      <button class="btn" id="btnRandom">Random game</button>
+    </div>
+    <div class="games" id="games"></div>
+  </div>
+</div>
+
+<!-- Closest -->
+<div class="overlay" id="closestOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="closestTitle">Closest words</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="list" id="closest"></div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Statistics</h2><button class="xbtn" data-close>&times;</button></div>
+    <div class="statnums">
+      <div><span class="n" id="sPlayed">0</span><span class="l">Played</span></div>
+      <div><span class="n" id="sWin">0</span><span class="l">Solved&nbsp;%</span></div>
+      <div><span class="n" id="sAvg">–</span><span class="l">Avg.<br>guesses</span></div>
+      <div><span class="n" id="sStreak">0</span><span class="l">Current streak</span></div>
+      <div><span class="n" id="sMax">0</span><span class="l">Best streak</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:16px 0 0">Streaks count daily games solved on their own day without giving up.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= Konstanten ================= */
+const DATA = "/contexto/data/en/";
+const EPOCH = Date.UTC(2026, 8, 28);      // Spiel #1
+const GREEN = 300, YELLOW = 1500;          // Farbgrenzen wie bei Contexto
+const CLOSEST_SHOWN = 500;
+const K_GAMES = "contexto.en.games";
+const K_HELP = "contexto.en.seenHelp";
+
+/* ================= Storage-Helfer ================= */
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e){ return fallback; }
+}
+function save(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+}
+
+/* ================= Datum / Spielnummer ================= */
+function todayNumber(){
+  const d = new Date();
+  const n = Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - EPOCH) / 86400000) + 1;
+  return Math.max(1, n);
+}
+function dateOf(num){
+  const d = new Date(EPOCH + (num - 1) * 86400000);
+  return d.toLocaleDateString("en-GB", { day:"numeric", month:"short", timeZone:"UTC" });
+}
+
+/* ================= Daten ================= */
+let vocab = null;      // {words, forms, stop, games}
+let wordIndex = null;  // Map wort -> id
+let stopSet = null;
+const gameCache = new Map();
+
+async function loadVocab(){
+  const res = await fetch(DATA + "vocab.json");
+  if(!res.ok) throw new Error("vocab " + res.status);
+  vocab = await res.json();
+  wordIndex = new Map(vocab.words.map((w, i) => [w, i]));
+  stopSet = new Set(vocab.stop);
+}
+async function loadGame(num){
+  const file = ((num - 1) % vocab.games) + 1;   // nach der letzten Datei geht es von vorn los
+  if(gameCache.has(file)) return gameCache.get(file);
+  const res = await fetch(DATA + "games/" + file + ".bin");
+  if(!res.ok) throw new Error("game " + res.status);
+  const view = new DataView(await res.arrayBuffer());
+  const n = view.byteLength / 2;
+  const order = new Uint16Array(n);               // Position -> Wort-ID
+  const rank = new Uint16Array(n);                // Wort-ID -> Position (1 = Lösung)
+  for(let i = 0; i < n; i++){
+    const id = view.getUint16(i * 2, true);
+    order[i] = id;
+    rank[id] = i + 1;
+  }
+  const game = { order, rank };
+  gameCache.set(file, game);
+  return game;
+}
+
+/* ================= Spielzustand ================= */
+// gespeichert pro Spielnummer: {g:[{w, h?}], done, won, day}
+let saved = load(K_GAMES, {});
+let cur = null;        // {num, game, st}
+
+function stateFor(num){
+  return saved[num] || { g:[], done:false, won:false };
+}
+function persist(){
+  if(!cur) return;
+  saved[cur.num] = cur.st;
+  save(K_GAMES, saved);
+}
+const answerOf = () => vocab.words[cur.game.order[0]];
+const rankOf = w => cur.game.rank[wordIndex.get(w)];
+
+/* ================= Eingabe normalisieren ================= */
+function normalize(raw){
+  return raw.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+function lookup(word){
+  if(wordIndex.has(word)) return word;
+  const f = vocab.forms[word];
+  return f === undefined ? null : vocab.words[f];
+}
+
+/* ================= UI-Helfer ================= */
+const el = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+function toast(msg){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 1600);
+}
+function message(html){ el("message").innerHTML = html; }
+
+function colorOf(rank){
+  return rank <= GREEN ? "c-green" : rank <= YELLOW ? "c-yellow" : "c-red";
+}
+function barWidth(rank){
+  const n = vocab.words.length;
+  return Math.max(3, 100 * (1 - Math.log(rank) / Math.log(n)));
+}
+function rowHtml(word, rank, extra = "", tag = ""){
+  return `<div class="row ${extra}" data-w="${esc(word)}">`
+       + `<div class="bar ${colorOf(rank)}" style="width:${barWidth(rank).toFixed(1)}%"></div>`
+       + `<span class="w">${esc(word)}${tag}</span><span class="r">${rank}</span></div>`;
+}
+
+/* ================= Rendern ================= */
+function renderInfo(){
+  const today = todayNumber();
+  el("gameLabel").textContent = cur.num === today ? `Game #${cur.num} · today` : `Game #${cur.num}`;
+  el("guessCount").textContent = cur.st.g.length;
+  const hints = cur.st.g.filter(x => x.h).length;
+  el("hintInfo").style.display = hints ? "" : "none";
+  el("hintCount").textContent = hints;
+}
+
+function renderGuesses(animateLast){
+  const g = cur.st.g;
+  const hintTag = `<span class="tag">💡</span>`;
+  const latest = g[g.length - 1];
+  el("last").innerHTML = latest && !cur.st.done
+    ? rowHtml(latest.w, rankOf(latest.w), animateLast ? "pop" : "", latest.h ? hintTag : "")
+    : "";
+  const sorted = g.slice().sort((a, b) => rankOf(a.w) - rankOf(b.w));
+  el("guesses").innerHTML = sorted.map(x => rowHtml(x.w, rankOf(x.w), "", x.h ? hintTag : "")).join("");
+}
+
+function renderResult(){
+  const r = el("result");
+  if(!cur.st.done){ r.classList.remove("show"); return; }
+  r.classList.add("show");
+  const guesses = cur.st.g.filter(x => !x.h).length;
+  const hints = cur.st.g.length - guesses;
+  const hintText = hints ? ` and ${hints} hint${hints === 1 ? "" : "s"}` : "";
+  if(cur.st.won){
+    el("resHeadline").textContent = "🎉 You got it!";
+    el("resSub").innerHTML = `The word was <b>${esc(answerOf())}</b>.<br>`
+      + `${guesses} guess${guesses === 1 ? "" : "es"}${hintText}.`;
+  }else{
+    el("resHeadline").textContent = "You gave up.";
+    el("resSub").innerHTML = `The word was <b>${esc(answerOf())}</b>.<br>`
+      + `After ${guesses} guess${guesses === 1 ? "" : "es"}${hintText}.`;
+  }
+  updateCountdown();
+}
+
+function updateCountdown(){
+  const cd = el("countdown");
+  if(!cur || !cur.st.done || cur.num !== todayNumber()){ cd.textContent = ""; return; }
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  const p = n => String(n).padStart(2, "0");
+  cd.textContent = `Next word in ${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}:${p(s % 60)}`;
+}
+setInterval(updateCountdown, 1000);
+
+function setPlayable(on){
+  el("guessInput").disabled = !on;
+  el("btnGuess").disabled = !on;
+  el("btnHint").disabled = !on;
+  el("btnGiveUp").disabled = !on;
+  el("guessInput").placeholder = on ? "type a word" : (cur && cur.st.done ? "game over" : "Loading…");
+}
+
+function render(){
+  renderInfo();
+  renderGuesses(false);
+  renderResult();
+  setPlayable(!cur.st.done);
+}
+
+/* ================= Spiel wechseln ================= */
+async function openGame(num){
+  setPlayable(false);
+  message("");
+  try{
+    const game = await loadGame(num);
+    cur = { num, game, st: stateFor(num) };
+    render();
+    if(!cur.st.done) el("guessInput").focus();
+  }catch(e){
+    message("Couldn't load the game data. Please reload the page.");
+  }
+}
+
+/* ================= Raten ================= */
+function addGuess(word, isHint){
+  const entry = isHint ? { w:word, h:1 } : { w:word };
+  cur.st.g.push(entry);
+  if(rankOf(word) === 1){
+    cur.st.done = true;
+    cur.st.won = true;
+    cur.st.day = cur.num === todayNumber();
+  }
+  persist();
+  renderInfo();
+  renderGuesses(true);
+  if(cur.st.done){
+    renderResult();
+    setPlayable(false);
+  }
+}
+
+function flashRow(word){
+  document.querySelectorAll(`#guesses .row[data-w="${CSS.escape(word)}"]`).forEach(r => {
+    r.classList.remove("flash"); void r.offsetWidth; r.classList.add("flash");
+    r.scrollIntoView({ block:"nearest", behavior:"smooth" });
+  });
+}
+
+function submitGuess(){
+  if(!cur || cur.st.done) return;
+  const input = el("guessInput");
+  const raw = normalize(input.value);
+  if(!raw) return;
+  input.value = "";
+  if(!/^[a-z]+$/.test(raw)){
+    message(raw.includes(" ") ? "One word at a time, please." : "Only letters, please.");
+    return;
+  }
+  if(stopSet.has(raw)){
+    message(`<b>${esc(raw)}</b> is too common and doesn't count.`);
+    return;
+  }
+  const word = lookup(raw);
+  if(!word){
+    message(`I don't know the word <b>${esc(raw)}</b>.`);
+    return;
+  }
+  if(cur.st.g.some(x => x.w === word)){
+    message(`<b>${esc(word)}</b> was already guessed.`);
+    flashRow(word);
+    return;
+  }
+  message(word === raw ? "" : `<b>${esc(raw)}</b> counts as <b>${esc(word)}</b>.`);
+  addGuess(word, false);
+}
+
+/* ================= Tipp ================= */
+function giveHint(){
+  if(!cur || cur.st.done) return;
+  const taken = new Set(cur.st.g.map(x => rankOf(x.w)));
+  const best = taken.size ? Math.min(...taken) : 0;
+  // Wort auf halbem Weg zwischen bestem Tipp und Lösung; ohne Tipps ein Wort aus der Top 300
+  let target = best ? Math.max(2, Math.floor(best / 2)) : GREEN;
+  let r = target;
+  while(r >= 2 && taken.has(r)) r--;
+  if(r < 2){
+    r = target + 1;
+    while(taken.has(r)) r++;
+  }
+  if(r > cur.game.order.length) return;
+  const word = vocab.words[cur.game.order[r - 1]];
+  message(`Hint: <b>${esc(word)}</b>`);
+  addGuess(word, true);
+}
+
+/* ================= Aufgeben ================= */
+function giveUp(){
+  if(!cur || cur.st.done) return;
+  cur.st.done = true;
+  cur.st.won = false;
+  persist();
+  closeOverlays();
+  message("");
+  render();
+}
+
+/* ================= Teilen ================= */
+function shareText(){
+  const g = cur.st.g;
+  const guesses = g.filter(x => !x.h).length;
+  const hints = g.length - guesses;
+  const counts = { green:0, yellow:0, red:0 };
+  g.forEach(x => {
+    const r = rankOf(x.w);
+    counts[r <= GREEN ? "green" : r <= YELLOW ? "yellow" : "red"]++;
+  });
+  const hintText = hints ? ` and ${hints} hint${hints === 1 ? "" : "s"}` : "";
+  const line = cur.st.won
+    ? `I found the word in ${guesses} guess${guesses === 1 ? "" : "es"}${hintText}.`
+    : `I gave up after ${guesses} guess${guesses === 1 ? "" : "es"}${hintText}.`;
+  return `CONTEXTO #${cur.num}\n${line}\n`
+       + `🟩 ${counts.green}\n🟨 ${counts.yellow}\n🟥 ${counts.red}\n`
+       + location.origin + location.pathname;
+}
+async function doShare(){
+  const text = shareText();
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("Copied to clipboard!");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("Copied to clipboard!"); }
+    catch(e2){ toast("Couldn't copy."); }
+    document.body.removeChild(ta);
+  }
+}
+
+/* ================= Statistik ================= */
+function computeStats(){
+  const nums = Object.keys(saved).map(Number).filter(n => saved[n].done);
+  const won = nums.filter(n => saved[n].won);
+  const solvedGuesses = won.map(n => saved[n].g.length);
+  const onDay = n => saved[n] && saved[n].won && saved[n].day;
+  const today = todayNumber();
+  let streak = 0;
+  for(let n = onDay(today) ? today : today - 1; n >= 1 && onDay(n); n--) streak++;
+  let best = 0, run = 0;
+  for(let n = 1; n <= today; n++){ run = onDay(n) ? run + 1 : 0; best = Math.max(best, run); }
+  return {
+    played: nums.length,
+    winPct: nums.length ? Math.round(won.length / nums.length * 100) : 0,
+    avg: solvedGuesses.length ? Math.round(solvedGuesses.reduce((a, b) => a + b, 0) / solvedGuesses.length) : "–",
+    streak, best,
+  };
+}
+function openStats(){
+  const s = computeStats();
+  el("sPlayed").textContent = s.played;
+  el("sWin").textContent = s.winPct;
+  el("sAvg").textContent = s.avg;
+  el("sStreak").textContent = s.streak;
+  el("sMax").textContent = s.best;
+  openOverlay("statsOverlay");
+}
+
+/* ================= Archiv ================= */
+function openArchive(){
+  const today = todayNumber();
+  let html = "";
+  for(let n = today; n >= 1; n--){
+    const st = saved[n];
+    const status = !st || !st.g.length ? "" : st.done ? (st.won ? " ✅" : " 🏳️") : " …";
+    html += `<button data-num="${n}" class="${cur && cur.num === n ? "cur" : ""}">#${n}${status}`
+          + `<small>${dateOf(n)}</small></button>`;
+  }
+  el("games").innerHTML = html;
+  openOverlay("archiveOverlay");
+}
+el("games").addEventListener("click", e => {
+  const b = e.target.closest("button[data-num]");
+  if(!b) return;
+  closeOverlays();
+  openGame(Number(b.dataset.num));
+});
+el("btnRandom").addEventListener("click", () => {
+  const today = todayNumber();
+  const open = [];
+  for(let n = 1; n <= today; n++) if(!(saved[n] && saved[n].done) && n !== cur.num) open.push(n);
+  if(!open.length){ toast("You've played every game!"); return; }
+  closeOverlays();
+  openGame(open[Math.floor(Math.random() * open.length)]);
+});
+
+/* ================= Nächste Wörter ================= */
+function openClosest(){
+  const guessed = new Set(cur.st.g.map(x => x.w));
+  const n = Math.min(CLOSEST_SHOWN, cur.game.order.length);
+  let html = "";
+  for(let i = 0; i < n; i++){
+    const w = vocab.words[cur.game.order[i]];
+    html += rowHtml(w, i + 1, "", guessed.has(w) ? `<span class="tag">✓</span>` : "");
+  }
+  el("closestTitle").textContent = `Closest words to “${answerOf()}”`;
+  el("closest").innerHTML = html;
+  openOverlay("closestOverlay");
+  el("closestOverlay").querySelector(".modal").scrollTop = 0;
+}
+
+/* ================= Modals ================= */
+function openOverlay(id){ el(id).classList.add("show"); }
+function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o => o.classList.remove("show")); }
+
+document.querySelectorAll(".overlay").forEach(o => {
+  o.addEventListener("click", e => { if(e.target === o) closeOverlays(); });
+});
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeOverlays(); });
+
+el("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+el("btnHint").addEventListener("click", giveHint);
+el("btnGiveUp").addEventListener("click", () => { if(cur && !cur.st.done) openOverlay("giveUpOverlay"); });
+el("btnConfirmGiveUp").addEventListener("click", giveUp);
+el("btnArchive").addEventListener("click", openArchive);
+el("btnMore").addEventListener("click", openArchive);
+el("btnStats").addEventListener("click", openStats);
+el("btnClosest").addEventListener("click", openClosest);
+el("btnShare").addEventListener("click", doShare);
+el("btnGuess").addEventListener("click", submitGuess);
+el("guessInput").addEventListener("keydown", e => { if(e.key === "Enter") submitGuess(); });
+
+/* ================= Start ================= */
+(async function start(){
+  if(!load(K_HELP, false)){
+    openOverlay("helpOverlay");
+    save(K_HELP, true);
+  }
+  try{
+    await loadVocab();
+  }catch(e){
+    message("Couldn't load the word list. Open the page through a web server (see README).");
+    return;
+  }
+  await openGame(todayNumber());
+})();
+</script>
+</body>
+</html>
