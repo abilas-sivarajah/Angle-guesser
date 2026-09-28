@@ -2,7 +2,7 @@
 //
 //   cd geo/tools && npm install && npm run build
 //
-// Quellen: world-atlas (Natural Earth, gemeinfrei), i18n-iso-countries (deutsche Ländernamen),
+// Quellen: world-atlas (Natural Earth, gemeinfrei), i18n-iso-countries (deutsche Ländernamen), flag-icons (Flaggen, MIT),
 // Natural Earth „populated places“ (Städte mit deutschen Namen, wird nach .cache geladen)
 // und die handverlesenen Sehenswürdigkeiten unten.
 import fs from "node:fs";
@@ -241,8 +241,20 @@ out("data/countries.json", {
   countries: countryList,
   umriss: shuffled(answerIds, 20260928),
   globus: shuffled(answerIds, 19700101),
+  flagge: shuffled(answerIds, 31415926),
 });
 out("data/shapes.json", shapes);
+// Flaggen (FLAGGE): eine SVG-Datei je Lösung
+const flagSrc = path.join(TOOLS, "node_modules/flag-icons/flags/4x3");
+fs.rmSync(path.join(GEO, "flags"), { recursive:true, force:true });
+fs.mkdirSync(path.join(GEO, "flags"));
+let flagBytes = 0;
+for(const id of answerIds){
+  const svg = fs.readFileSync(path.join(flagSrc, id.toLowerCase() + ".svg"));
+  fs.writeFileSync(path.join(GEO, "flags", id + ".svg"), svg);
+  flagBytes += svg.length;
+}
+console.log("flags/*.svg".padEnd(28), (flagBytes / 1024).toFixed(0).padStart(5), "KB", `(${answerIds.length} Dateien)`);
 out("data/places.json", places);
 out("lib/d3.min.js", fs.readFileSync(path.join(TOOLS, "node_modules/d3/dist/d3.min.js"), "utf8"));
 out("lib/topojson-client.min.js", fs.readFileSync(path.join(TOOLS, "node_modules/topojson-client/dist/topojson-client.min.js"), "utf8"));
